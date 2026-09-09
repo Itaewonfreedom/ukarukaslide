@@ -1,363 +1,269 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:clipToPadding="false"
     android:fillViewport="true"
-    android:fitsSystemWindows="true">
-
+    android:fitsSystemWindows="true"
+    android:background="@color/background">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="20dp"
-        android:paddingTop="26dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="40dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
-            android:letterSpacing="0.18"
-            android:text="UKARUKA SLIDE"
-            android:textColor="@color/mint"
-            android:textSize="12sp" />
-
+        android:paddingStart="@dimen/page_gutter"
+        android:paddingEnd="@dimen/page_gutter"
+        android:paddingTop="24dp"
+        android:paddingBottom="36dp">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:fontFamily="sans-serif-medium"
-            android:lineSpacingExtra="2dp"
-            android:text="사진을,\n다시 흐르게."
+            android:text="Ukaruka"
+            android:textSize="32sp"
             android:textColor="@color/ink"
-            android:textSize="34sp" />
-
+            android:fontFamily="sans-serif-light"
+            android:letterSpacing="-0.04"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="휴대폰과 태블릿을 조용히 움직이는 나만의 사진 액자로 만드세요."
+            android:text="Slide / 로컬 사진 화면 보호기"
+            android:textSize="12sp"
             android:textColor="@color/ink_muted"
-            android:textSize="15sp" />
-
-        <com.google.android.material.card.MaterialCardView
+            android:layout_marginTop="4dp"/>
+        <View
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="1dp"
+            android:background="@color/outline"
             android:layout_marginTop="26dp"
-            app:cardBackgroundColor="@color/mint_dark"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeColor="#38675E"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="22dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.12"
-                    android:text="CURRENT SOURCE"
-                    android:textColor="@color/mint"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/sourceTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:fontFamily="sans-serif-medium"
-                    android:text="사진 소스 없음"
-                    android:textColor="@color/ink"
-                    android:textSize="20sp" />
-
-                <TextView
-                    android:id="@+id/sourceDetail"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:text="아래에서 사진을 연결해 주세요."
-                    android:textColor="#B7D6D0"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
+            android:layout_marginBottom="24dp"/>
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="사진 소스"
-            android:textColor="@color/ink"
-            android:textSize="18sp" />
-
-        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/outline"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="@drawable/bg_icon_mint"
-                        android:contentDescription="@null"
-                        android:padding="12dp"
-                        android:src="@drawable/ic_folder" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="기기 앨범"
-                            android:textColor="@color/ink"
-                            android:textSize="17sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:text="카메라, 다운로드 등 여러 폴더를 한 번에 재생"
-                            android:textColor="@color/ink_muted"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/selectAlbumsButton"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:layout_marginTop="18dp"
-                    android:text="앨범·폴더 선택"
-                    android:textAllCaps="false"
-                    android:textColor="@color/mint"
-                    app:cornerRadius="16dp"
-                    app:strokeColor="@color/mint" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/outline"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="@drawable/bg_icon_violet"
-                        android:contentDescription="@null"
-                        android:padding="12dp"
-                        android:src="@drawable/ic_cloud" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-medium"
-                            android:text="Google Photos"
-                            android:textColor="@color/ink"
-                            android:textSize="17sp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="3dp"
-                            android:text="Google Photos의 앨범·검색 화면에서 사진 선택"
-                            android:textColor="@color/ink_muted"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:background="@drawable/bg_source_status"
-                    android:paddingStart="12dp"
-                    android:paddingTop="6dp"
-                    android:paddingEnd="12dp"
-                    android:paddingBottom="6dp"
-                    android:text="앨범 자동 동기화는 Google 계정 연결 필요"
-                    android:textColor="@color/mint"
-                    android:textSize="12sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/pickPhotosButton"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:layout_marginTop="14dp"
-                    android:text="Google Photos 열기"
-                    android:textAllCaps="false"
-                    android:textColor="@color/violet"
-                    app:cornerRadius="16dp"
-                    app:strokeColor="@color/violet" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
+            android:text="앨범"
+            android:textSize="13sp"
+            android:textColor="@color/ink_muted" />
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="재생 설정"
-            android:textColor="@color/ink"
-            android:textSize="18sp" />
-
-        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="앨범을 선택하세요"
+            android:textSize="26sp"
+            android:textColor="@color/ink"
+            android:id="@+id/sourceTitle"
             android:layout_marginTop="12dp"
-            app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/outline"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="사진 전환 간격"
-                    android:textColor="@color/ink_muted"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.button.MaterialButtonToggleGroup
-                    android:id="@+id/intervalGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    app:selectionRequired="true"
-                    app:singleSelection="true">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/interval10"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:text="10초"
-                        android:textAllCaps="false" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/interval15"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:text="15초"
-                        android:textAllCaps="false" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/interval30"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:text="30초"
-                        android:textAllCaps="false" />
-                </com.google.android.material.button.MaterialButtonToggleGroup>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
+            android:fontFamily="sans-serif-light"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="기기에 저장된 사진으로 시작합니다."
+            android:textSize="14sp"
+            android:textColor="@color/ink_muted"
+            android:id="@+id/sourceDetail"
+            android:layout_marginTop="8dp"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/selectAlbumsButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="12dp"
+            android:text="앨범·폴더 선택"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:textColor="@color/ink"
+            app:cornerRadius="4dp"
+            app:strokeColor="@color/outline" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/previewButton"
+            style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
-            android:layout_height="58dp"
-            android:layout_marginTop="28dp"
-            android:text="전체 화면 미리보기"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="12dp"
+            android:text="슬라이드 재생"
             android:textAllCaps="false"
+            android:textSize="15sp"
             android:textColor="@color/background"
-            app:backgroundTint="@color/mint"
-            app:cornerRadius="18dp"
-            app:icon="@drawable/ic_play"
-            app:iconGravity="textStart"
-            app:iconTint="@color/background" />
-
+            app:cornerRadius="4dp"
+            app:strokeColor="@color/outline"
+            app:backgroundTint="@color/ink"/>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/outline"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="24dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="재생"
+            android:textSize="20sp"
+            android:textColor="@color/ink" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="사진 한 장의 표시 시간"
+            android:textSize="13sp"
+            android:textColor="@color/ink_muted"
+            android:layout_marginTop="18dp"/>
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/intervalGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/interval10"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:layout_weight="1"
+                android:text="10초"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                app:cornerRadius="4dp"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/interval15"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:layout_weight="1"
+                android:text="15초"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                app:cornerRadius="4dp"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/interval30"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:layout_weight="1"
+                android:text="30초"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                app:cornerRadius="4dp"/>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="재생 순서"
+            android:textSize="13sp"
+            android:textColor="@color/ink_muted"
+            android:layout_marginTop="24dp"/>
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/playbackOrderGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/orderRandom"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:layout_weight="1"
+                android:text="랜덤"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                app:cornerRadius="4dp"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/orderChronological"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:layout_weight="1"
+                android:text="오래된 순"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                app:cornerRadius="4dp"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/orderReverse"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:layout_weight="1"
+                android:text="최신 순"
+                android:textSize="13sp"
+                android:textAllCaps="false"
+                app:cornerRadius="4dp"/>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="오래된 순·최신 순은 시간순으로 정렬한 뒤\n24장씩 묶어 섞습니다."
+            android:textSize="12sp"
+            android:textColor="@color/ink_muted"
+            android:layout_marginTop="10dp"
+            android:lineSpacingExtra="3dp"/>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/outline"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="24dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="화면"
+            android:textSize="20sp"
+            android:textColor="@color/ink" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/styleSettingsButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="12dp"
+            android:text="시계와 날짜"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:textColor="@color/ink"
+            app:cornerRadius="4dp"
+            app:strokeColor="@color/outline" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/dreamSettingsButton"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="12dp"
             android:text="시스템 화면 보호기 설정"
             android:textAllCaps="false"
+            android:textSize="15sp"
             android:textColor="@color/ink"
-            app:cornerRadius="18dp"
-            app:icon="@drawable/ic_display"
-            app:iconGravity="textStart"
-            app:iconTint="@color/ink"
+            app:cornerRadius="4dp"
             app:strokeColor="@color/outline" />
-
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:text="사진은 기기 안에서만 읽고 재생합니다."
+            android:text="기기 안의 사진만 사용합니다. 계정 연결은 필요 없습니다."
+            android:textSize="12sp"
             android:textColor="@color/ink_muted"
-            android:textSize="12sp" />
+            android:layout_marginTop="24dp"/>
     </LinearLayout>
 </ScrollView>

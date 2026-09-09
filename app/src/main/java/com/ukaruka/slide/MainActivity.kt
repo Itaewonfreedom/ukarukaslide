@@ -1,6 +1,7 @@
 package com.ukaruka.slide
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,35 +10,30 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     private lateinit var store: PhotoSourceStore
     private lateinit var sourceTitle: TextView
     private lateinit var sourceDetail: TextView
+    private var returningFromPermissionSettings = false
 
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { grants ->
-        if (grants.values.any { it }) showAlbumPicker()
-        else toast("사진 권한이 있어야 기기 앨범을 읽을 수 있습니다.")
+    private val albumPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) refreshStatus()
     }
 
-    private val photoPicker = registerForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(100)
-    ) { uris ->
-        if (uris.isEmpty()) return@registerForActivityResult
-        persistReadAccess(uris)
-        store.savePickedMedia(uris)
-        refreshStatus()
-        toast("사진 ${uris.size}장을 연결했습니다.")
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted && hasFullPhotoAccess()) showAlbumPicker()
+        else showFullAlbumAccessDialog()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,10 +47,8 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.selectAlbumsButton).setOnClickListener {
             requestAlbumAccess()
         }
-        findViewById<MaterialButton>(R.id.pickPhotosButton).setOnClickListener {
-            photoPicker.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
+        findViewById<MaterialButton>(R.id.styleSettingsButton).setOnClickListener {
+            startActivity(Intent(this, AppearanceSettingsActivity::class.java))
         }
         findViewById<MaterialButton>(R.id.previewButton).setOnClickListener {
             launchFullscreenPreview()
@@ -64,12 +58,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         configureIntervalButtons()
+        configurePlaybackOrderButtons()
         refreshStatus()
     }
 
     override fun onResume() {
         super.onResume()
         if (::sourceTitle.isInitialized) refreshStatus()
+        if (returningFromPermissionSettings) {
+            returningFromPermissionSettings = false
+            if (hasFullPhotoAccess()) showAlbumPicker()
+            else toast("앨범 전체 재생에는 사진을 모두 허용해야 합니다.")
+        }
     }
 
     private fun configureIntervalButtons() {
@@ -93,73 +93,76 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun requestAlbumAccess() {
-        val permissions = when {
-            Build.VERSION.SDK_INT >= 34 -> arrayOf(
-                Manifest.permission.READ_MEDIA_IMAGES,
-                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-            )
-            Build.VERSION.SDK_INT >= 33 -> arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
-            else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-        if (permissions.any {
-                ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+    private fun configurePlaybackOrderButtons() {
+        val group = findViewById<MaterialButtonToggleGroup>(R.id.playbackOrderGroup)
+        group.check(
+            when (store.playbackOrder) {
+                PhotoSourceStore.PlaybackOrder.RANDOM -> R.id.orderRandom
+                PhotoSourceStore.PlaybackOrder.CHRONOLOGICAL -> R.id.orderChronological
+                PhotoSourceStore.PlaybackOrder.REVERSE_CHRONOLOGICAL -> R.id.orderReverse
             }
-        ) {
+        )
+        group.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            store.setPlaybackOrder(
+                when (checkedId) {
+                    R.id.orderChronological -> PhotoSourceStore.PlaybackOrder.CHRONOLOGICAL
+                    R.id.orderReverse -> PhotoSourceStore.PlaybackOrder.REVERSE_CHRONOLOGICAL
+                    else -> PhotoSourceStore.PlaybackOrder.RANDOM
+                }
+            )
+        }
+    }
+
+    private fun requestAlbumAccess() {
+        if (hasFullPhotoAccess()) {
             showAlbumPicker()
         } else {
-            permissionLauncher.launch(permissions)
+            permissionLauncher.launch(requiredPhotoPermission())
         }
+    }
+
+    private fun hasFullPhotoAccess(): Boolean = ContextCompat.checkSelfPermission(
+        this,
+        requiredPhotoPermission()
+    ) == PackageManager.PERMISSION_GRANTED
+
+    private fun requiredPhotoPermission(): String = if (Build.VERSION.SDK_INT >= 33) {
+        Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    private fun showFullAlbumAccessDialog() {
+        val selectedOnly = Build.VERSION.SDK_INT >= 34 &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+            ) == PackageManager.PERMISSION_GRANTED
+        val explanation = if (selectedOnly) {
+            "현재 ‘선택한 사진만 허용’ 상태입니다. 앨범·폴더 전체를 자동 재생하려면 사진 권한을 ‘모두 허용’으로 바꿔 주세요."
+        } else {
+            "기기 앨범·폴더 전체를 읽으려면 사진 권한이 필요합니다. 설정에서 사진을 ‘모두 허용’해 주세요."
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("앨범 전체 권한이 필요해요")
+            .setMessage(explanation)
+            .setNegativeButton("취소", null)
+            .setPositiveButton("설정 열기") { _, _ ->
+                returningFromPermissionSettings = true
+                startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$packageName")
+                    )
+                )
+            }
+            .show()
     }
 
     private fun showAlbumPicker() {
-        sourceTitle.text = "앨범을 불러오는 중"
-        sourceDetail.text = "기기의 사진 폴더를 확인하고 있습니다."
-
-        thread(name = "album-loader") {
-            val albums = runCatching { PhotoRepository(this).loadAlbums() }.getOrDefault(emptyList())
-            runOnUiThread {
-                refreshStatus()
-                if (albums.isEmpty()) {
-                    toast("읽을 수 있는 기기 앨범이 없습니다.")
-                    return@runOnUiThread
-                }
-
-                val previousIds = store.albumIds.toSet()
-                val checked = BooleanArray(albums.size) { albums[it].id in previousIds }
-                val labels = albums.map { "${it.name}  ·  ${it.photoCount}장" }.toTypedArray()
-
-                MaterialAlertDialogBuilder(this)
-                    .setTitle("앨범·폴더 선택")
-                    .setMessage("여러 개를 골라도 됩니다. 폴더에 새로 추가되는 사진도 자동으로 포함됩니다.")
-                    .setMultiChoiceItems(labels, checked) { _, index, isChecked ->
-                        checked[index] = isChecked
-                    }
-                    .setNegativeButton("취소", null)
-                    .setPositiveButton("적용") { _, _ ->
-                        val selected = albums.filterIndexed { index, _ -> checked[index] }
-                        if (selected.isEmpty()) {
-                            toast("앨범을 하나 이상 선택해 주세요.")
-                        } else {
-                            store.saveLocalAlbums(selected)
-                            refreshStatus()
-                            toast("앨범 ${selected.size}개를 연결했습니다.")
-                        }
-                    }
-                    .show()
-            }
-        }
-    }
-
-    private fun persistReadAccess(uris: List<Uri>) {
-        uris.forEach { uri ->
-            runCatching {
-                contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }
-        }
+        albumPickerLauncher.launch(Intent(this, AlbumPickerActivity::class.java))
     }
 
     private fun launchFullscreenPreview() {
@@ -183,16 +186,12 @@ class MainActivity : AppCompatActivity() {
     private fun refreshStatus() {
         when (store.sourceType) {
             PhotoSourceStore.SourceType.NONE -> {
-                sourceTitle.text = "사진 소스를 연결해 주세요"
-                sourceDetail.text = "기기 앨범 또는 Google Photos에서 시작할 수 있습니다."
+                sourceTitle.text = "앨범을 선택하세요"
+                sourceDetail.text = "기기의 앨범·폴더를 선택해 주세요."
             }
             PhotoSourceStore.SourceType.LOCAL_ALBUM -> {
-                sourceTitle.text = "기기 앨범 ${store.albumIds.size}개"
+                sourceTitle.text = "${store.albumIds.size}개의 앨범"
                 sourceDetail.text = store.albumNames.joinToString(" · ")
-            }
-            PhotoSourceStore.SourceType.PICKED_MEDIA -> {
-                sourceTitle.text = "Google Photos · 선택 사진"
-                sourceDetail.text = "${store.pickedMedia().size}장 연결됨"
             }
         }
     }

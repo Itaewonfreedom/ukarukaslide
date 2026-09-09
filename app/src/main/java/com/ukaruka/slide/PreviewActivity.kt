@@ -4,9 +4,11 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import kotlin.concurrent.thread
 
 class PreviewActivity : Activity() {
-    private lateinit var player: SlideshowPlayerView
+    private lateinit var display: AmbientDisplayView
+    private var active = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -16,23 +18,30 @@ class PreviewActivity : Activity() {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             )
-        player = SlideshowPlayerView(this)
-        setContentView(player)
+        display = AmbientDisplayView(this)
+        setContentView(display)
     }
 
     override fun onStart() {
         super.onStart()
+        active = true
         val store = PhotoSourceStore(this)
-        player.start(PhotoRepository(this).loadConfiguredPhotos(store), store.slideIntervalMs)
+        thread(name = "preview-source-loader") {
+            val photos = PhotoRepository(this).loadConfiguredPhotos(store)
+            runOnUiThread {
+                if (active) display.start(photos, store.slideIntervalMs, store.playbackOrder)
+            }
+        }
     }
 
     override fun onStop() {
-        player.stop()
+        active = false
+        display.stop()
         super.onStop()
     }
 
     override fun onDestroy() {
-        player.release()
+        display.release()
         super.onDestroy()
     }
 }

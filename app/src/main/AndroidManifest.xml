@@ -15,6 +15,16 @@
         android:theme="@style/Theme.UkarukaSlide">
 
         <activity
+            android:name=".AlbumPickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UkarukaSlide" />
+
+        <activity
+            android:name=".AppearanceSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.UkarukaSlide" />
+
+        <activity
             android:name=".PreviewActivity"
             android:configChanges="orientation|screenSize"
             android:excludeFromRecents="true"
@@ -47,6 +57,7 @@
                 android:name="android.service.dream"
                 android:resource="@xml/dream_info" />
         </service>
+
     </application>
 
 </manifest>
