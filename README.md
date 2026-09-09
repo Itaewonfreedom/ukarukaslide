@@ -4,7 +4,7 @@
 
 ## 지금 되는 것
 
-- 기기 `MediaStore`의 앨범 하나를 골라 전체 사진 랜덤 재생
+- 기기 `MediaStore`의 앨범·폴더를 여러 개 골라 전체 사진 랜덤 재생
 - Android 시스템 사진 선택기에서 로컬 또는 Google Photos 사진을 최대 100장 선택
 - 같은 사진 연속 재생을 피하는 셔플
 - 크로스페이드와 느린 줌/이동(Ken Burns) 효과
@@ -34,6 +34,8 @@ GitHub Actions가 푸시마다 Debug APK를 빌드해 artifact로 남깁니다.
 ## Google Photos 범위
 
 현재 버전은 Android Photo Picker를 사용합니다. 기기에서 Google Photos를 클라우드 미디어 제공자로 설정했다면 사진 선택 화면 안에서 Google Photos의 앨범·검색·즐겨찾기를 열 수 있습니다. 앱은 사용자가 명시적으로 고른 사진만 읽습니다.
+
+Android Photo Picker는 선택한 개별 사진의 읽기 권한만 앱에 전달하므로, Google Photos 앨범 자체를 저장하거나 앨범에 나중에 추가된 사진을 자동으로 가져올 수는 없습니다. 반면 기기 안의 앨범·폴더는 현재 버전부터 여러 개를 통째로 선택할 수 있고 새 사진도 자동 반영됩니다.
 
 “Google Photos 앨범 하나를 연결하고, 나중에 추가되는 사진까지 자동 반영”은 Google Photos **Ambient API** 연동이 필요합니다. 이 API는 사진 액자/TV용 앨범 선택과 미디어 목록 조회를 공식 지원하지만 다음 설정이 선행되어야 합니다.
 

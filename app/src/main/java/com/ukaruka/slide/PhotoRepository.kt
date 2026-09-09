@@ -14,7 +14,7 @@ class PhotoRepository(private val context: Context) {
         PhotoSourceStore.SourceType.NONE -> emptyList()
         PhotoSourceStore.SourceType.PICKED_MEDIA -> store.pickedMedia()
         PhotoSourceStore.SourceType.LOCAL_ALBUM -> runCatching {
-            store.albumId?.let(::loadAlbumPhotos).orEmpty()
+            loadAlbumPhotos(store.albumIds)
         }.getOrDefault(emptyList())
     }
 
@@ -47,16 +47,18 @@ class PhotoRepository(private val context: Context) {
             .sortedWith(compareByDescending<DeviceAlbum> { it.photoCount }.thenBy { it.name })
     }
 
-    private fun loadAlbumPhotos(albumId: String): List<Uri> {
+    private fun loadAlbumPhotos(albumIds: List<String>): List<Uri> {
+        if (albumIds.isEmpty()) return emptyList()
         val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(MediaStore.Images.Media._ID)
         val uris = mutableListOf<Uri>()
+        val placeholders = albumIds.joinToString(",") { "?" }
 
         resolver.query(
             collection,
             projection,
-            "${MediaStore.Images.Media.BUCKET_ID} = ? AND ${MediaStore.Images.Media.SIZE} > 0",
-            arrayOf(albumId),
+            "${MediaStore.Images.Media.BUCKET_ID} IN ($placeholders) AND ${MediaStore.Images.Media.SIZE} > 0",
+            albumIds.toTypedArray(),
             "${MediaStore.Images.Media.DATE_ADDED} DESC"
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)

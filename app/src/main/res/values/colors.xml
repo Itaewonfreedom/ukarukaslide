@@ -1,0 +1,12 @@
+<resources>
+    <color name="ink">#F4F7F6</color>
+    <color name="ink_muted">#9EA9A6</color>
+    <color name="background">#0B0E0E</color>
+    <color name="surface">#151A19</color>
+    <color name="surface_high">#1C2321</color>
+    <color name="outline">#2B3532</color>
+    <color name="mint">#81E6D3</color>
+    <color name="mint_dark">#0E3A34</color>
+    <color name="violet">#B8A7FF</color>
+    <color name="violet_dark">#30284E</color>
+</resources>

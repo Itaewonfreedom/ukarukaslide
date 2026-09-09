@@ -1,42 +1,33 @@
 package com.ukaruka.slide
 
 import android.Manifest
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.concurrent.thread
-import kotlin.math.roundToInt
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private lateinit var store: PhotoSourceStore
-    private lateinit var sourceStatus: TextView
+    private lateinit var sourceTitle: TextView
+    private lateinit var sourceDetail: TextView
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
-        if (grants.values.any { it }) {
-            showAlbumPicker()
-        } else {
-            toast("사진 권한이 있어야 기기 앨범을 읽을 수 있습니다.")
-        }
+        if (grants.values.any { it }) showAlbumPicker()
+        else toast("사진 권한이 있어야 기기 앨범을 읽을 수 있습니다.")
     }
 
     private val photoPicker = registerForActivityResult(
@@ -46,101 +37,59 @@ class MainActivity : ComponentActivity() {
         persistReadAccess(uris)
         store.savePickedMedia(uris)
         refreshStatus()
-        toast("${uris.size}장을 저장했습니다.")
+        toast("사진 ${uris.size}장을 연결했습니다.")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = PhotoSourceStore(this)
-        setContentView(buildContent())
+        setContentView(R.layout.activity_main)
+
+        sourceTitle = findViewById(R.id.sourceTitle)
+        sourceDetail = findViewById(R.id.sourceDetail)
+
+        findViewById<MaterialButton>(R.id.selectAlbumsButton).setOnClickListener {
+            requestAlbumAccess()
+        }
+        findViewById<MaterialButton>(R.id.pickPhotosButton).setOnClickListener {
+            photoPicker.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        }
+        findViewById<MaterialButton>(R.id.previewButton).setOnClickListener {
+            launchFullscreenPreview()
+        }
+        findViewById<MaterialButton>(R.id.dreamSettingsButton).setOnClickListener {
+            openDreamSettings()
+        }
+
+        configureIntervalButtons()
         refreshStatus()
     }
 
     override fun onResume() {
         super.onResume()
-        if (::sourceStatus.isInitialized) refreshStatus()
+        if (::sourceTitle.isInitialized) refreshStatus()
     }
 
-    private fun buildContent(): ScrollView {
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(24), dp(36), dp(24), dp(36))
-            setBackgroundColor(Color.rgb(247, 247, 247))
-        }
-
-        content.addView(TextView(this).apply {
-            text = "Ukaruka Slide"
-            textSize = 30f
-            setTextColor(Color.rgb(20, 20, 20))
-            gravity = Gravity.CENTER
-        }, matchWrap(top = 0, bottom = 8))
-
-        content.addView(TextView(this).apply {
-            text = "휴대폰과 태블릿을 내 사진 액자로"
-            textSize = 16f
-            setTextColor(Color.DKGRAY)
-            gravity = Gravity.CENTER
-        }, matchWrap(bottom = 28))
-
-        sourceStatus = TextView(this).apply {
-            textSize = 17f
-            setTextColor(Color.rgb(30, 30, 30))
-            setPadding(dp(18), dp(18), dp(18), dp(18))
-            setBackgroundColor(Color.WHITE)
-        }
-        content.addView(sourceStatus, matchWrap(bottom = 18))
-
-        content.addView(actionButton("기기 사진 앨범 선택") { requestAlbumAccess() }, matchWrap(bottom = 10))
-        content.addView(actionButton("Google Photos / 사진 선택") {
-            photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }, matchWrap(bottom = 8))
-
-        content.addView(TextView(this).apply {
-            text = "시스템 사진 선택기에서 Google Photos의 앨범도 열 수 있습니다. 선택한 사진만 앱에 공유됩니다."
-            textSize = 13f
-            setTextColor(Color.GRAY)
-        }, matchWrap(bottom = 24))
-
-        content.addView(TextView(this).apply {
-            text = "사진 전환 간격"
-            textSize = 16f
-            setTextColor(Color.rgb(30, 30, 30))
-        }, matchWrap(bottom = 4))
-
-        val intervalGroup = RadioGroup(this).apply {
-            orientation = RadioGroup.HORIZONTAL
-            gravity = Gravity.CENTER
-            val choices = listOf(10 to "10초", 15 to "15초", 30 to "30초")
-            choices.forEachIndexed { index, (seconds, label) ->
-                addView(RadioButton(this@MainActivity).apply {
-                    id = ViewId.next()
-                    text = label
-                    isChecked = store.slideIntervalMs == seconds * 1_000L
-                    setOnClickListener { store.setSlideIntervalMs(seconds * 1_000L) }
-                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-                if (index == 1 && store.slideIntervalMs !in choices.map { it.first * 1_000L }) {
-                    (getChildAt(index) as RadioButton).isChecked = true
-                }
+    private fun configureIntervalButtons() {
+        val group = findViewById<MaterialButtonToggleGroup>(R.id.intervalGroup)
+        group.check(
+            when (store.slideIntervalMs) {
+                10_000L -> R.id.interval10
+                30_000L -> R.id.interval30
+                else -> R.id.interval15
             }
-        }
-        content.addView(intervalGroup, matchWrap(bottom = 20))
-
-        content.addView(actionButton("전체 화면 미리보기") {
-            startActivity(Intent(this, PreviewActivity::class.java))
-        }, matchWrap(bottom = 10))
-
-        content.addView(actionButton("시스템 화면 보호기 설정 열기") { openDreamSettings() }, matchWrap(bottom = 12))
-
-        content.addView(TextView(this).apply {
-            text = "설정에서 Ukaruka Slide를 선택하면 충전 중 또는 도킹 중 Android 화면 보호기로 자동 실행됩니다."
-            textSize = 13f
-            setTextColor(Color.GRAY)
-        }, matchWrap(bottom = 20))
-
-        return ScrollView(this).apply {
-            isFillViewport = true
-            addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        )
+        group.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            store.setSlideIntervalMs(
+                when (checkedId) {
+                    R.id.interval10 -> 10_000L
+                    R.id.interval30 -> 30_000L
+                    else -> 15_000L
+                }
+            )
         }
     }
 
@@ -164,7 +113,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showAlbumPicker() {
-        sourceStatus.text = "앨범을 불러오는 중…"
+        sourceTitle.text = "앨범을 불러오는 중"
+        sourceDetail.text = "기기의 사진 폴더를 확인하고 있습니다."
+
         thread(name = "album-loader") {
             val albums = runCatching { PhotoRepository(this).loadAlbums() }.getOrDefault(emptyList())
             runOnUiThread {
@@ -173,15 +124,28 @@ class MainActivity : ComponentActivity() {
                     toast("읽을 수 있는 기기 앨범이 없습니다.")
                     return@runOnUiThread
                 }
+
+                val previousIds = store.albumIds.toSet()
+                val checked = BooleanArray(albums.size) { albums[it].id in previousIds }
                 val labels = albums.map { "${it.name}  ·  ${it.photoCount}장" }.toTypedArray()
-                AlertDialog.Builder(this)
-                    .setTitle("랜덤 재생할 앨범")
-                    .setItems(labels) { _, index ->
-                        val selected = albums[index]
-                        store.saveLocalAlbum(selected.id, selected.name)
-                        refreshStatus()
+
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("앨범·폴더 선택")
+                    .setMessage("여러 개를 골라도 됩니다. 폴더에 새로 추가되는 사진도 자동으로 포함됩니다.")
+                    .setMultiChoiceItems(labels, checked) { _, index, isChecked ->
+                        checked[index] = isChecked
                     }
                     .setNegativeButton("취소", null)
+                    .setPositiveButton("적용") { _, _ ->
+                        val selected = albums.filterIndexed { index, _ -> checked[index] }
+                        if (selected.isEmpty()) {
+                            toast("앨범을 하나 이상 선택해 주세요.")
+                        } else {
+                            store.saveLocalAlbums(selected)
+                            refreshStatus()
+                            toast("앨범 ${selected.size}개를 연결했습니다.")
+                        }
+                    }
                     .show()
             }
         }
@@ -190,9 +154,19 @@ class MainActivity : ComponentActivity() {
     private fun persistReadAccess(uris: List<Uri>) {
         uris.forEach { uri ->
             runCatching {
-                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
         }
+    }
+
+    private fun launchFullscreenPreview() {
+        val intent = Intent(this, PreviewActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        startActivity(intent)
     }
 
     private fun openDreamSettings() {
@@ -202,34 +176,27 @@ class MainActivity : ComponentActivity() {
             Intent(Settings.ACTION_SETTINGS)
         )
         val target = intents.firstOrNull { it.resolveActivity(packageManager) != null }
-        if (target != null) startActivity(target) else toast("화면 보호기 설정 화면을 열 수 없습니다.")
+        if (target != null) startActivity(target)
+        else toast("화면 보호기 설정 화면을 열 수 없습니다.")
     }
 
     private fun refreshStatus() {
-        sourceStatus.text = "현재 소스\n${store.summary()}"
+        when (store.sourceType) {
+            PhotoSourceStore.SourceType.NONE -> {
+                sourceTitle.text = "사진 소스를 연결해 주세요"
+                sourceDetail.text = "기기 앨범 또는 Google Photos에서 시작할 수 있습니다."
+            }
+            PhotoSourceStore.SourceType.LOCAL_ALBUM -> {
+                sourceTitle.text = "기기 앨범 ${store.albumIds.size}개"
+                sourceDetail.text = store.albumNames.joinToString(" · ")
+            }
+            PhotoSourceStore.SourceType.PICKED_MEDIA -> {
+                sourceTitle.text = "Google Photos · 선택 사진"
+                sourceDetail.text = "${store.pickedMedia().size}장 연결됨"
+            }
+        }
     }
 
-    private fun actionButton(label: String, action: () -> Unit) = Button(this).apply {
-        text = label
-        textSize = 16f
-        isAllCaps = false
-        setOnClickListener { action() }
-    }
-
-    private fun matchWrap(top: Int = 0, bottom: Int = 0) = LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT
-    ).apply {
-        topMargin = dp(top)
-        bottomMargin = dp(bottom)
-    }
-
-    private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).roundToInt()
-
-    private object ViewId {
-        private var value = 10_000
-        fun next(): Int = value++
-    }
+    private fun toast(message: String) =
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 }

@@ -1,5 +1,10 @@
 package com.ukaruka.slide
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
 import android.content.Context
 import android.graphics.Color
 import android.graphics.ImageDecoder
@@ -9,6 +14,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
@@ -28,6 +35,7 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     }
     private val mainHandler = Handler(Looper.getMainLooper())
     private val decodeExecutor = Executors.newSingleThreadExecutor()
+    private val viewAnimators = mutableMapOf<ImageView, AnimatorSet>()
     private val queue = ArrayDeque<Uri>()
     private var allPhotos: List<Uri> = emptyList()
     private var activeIndex = 0
@@ -51,7 +59,6 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     fun start(photos: List<Uri>, slideIntervalMs: Long) {
         stopAnimationsOnly()
         imageViews.forEach {
-            it.animate().cancel()
             it.alpha = 0f
             it.setImageDrawable(null)
             it.tag = null
@@ -141,35 +148,80 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
         val newView = imageViews[newIndex]
         activeIndex = newIndex
 
-        newView.animate().cancel()
-        oldView.animate().cancel()
+        viewAnimators.remove(newView)?.cancel()
         newView.setImageDrawable(drawable)
         newView.tag = uri
-        newView.alpha = 0f
-        newView.scaleX = 1.04f
-        newView.scaleY = 1.04f
-        newView.translationX = 0f
-        newView.translationY = 0f
+        val hasPreviousImage = oldView.drawable != null
+        newView.alpha = if (hasPreviousImage) 0f else 1f
         newView.bringToFront()
         emptyMessage.bringToFront()
 
-        val direction = if (Random.nextBoolean()) 1f else -1f
-        val xShift = width * 0.025f * direction
-        val yShift = height * 0.018f * -direction
-        newView.animate()
-            .alpha(1f)
-            .scaleX(1.14f)
-            .scaleY(1.14f)
-            .translationX(xShift)
-            .translationY(yShift)
-            .setDuration(intervalMs + FADE_MS)
-            .start()
+        val xDirection = if (Random.nextBoolean()) 1f else -1f
+        val yDirection = if (Random.nextBoolean()) 1f else -1f
+        val xTravel = width.coerceAtLeast(resources.displayMetrics.widthPixels) * 0.035f
+        val yTravel = height.coerceAtLeast(resources.displayMetrics.heightPixels) * 0.025f
+        val startScale = if (Random.nextBoolean()) 1.06f else 1.15f
+        val endScale = if (startScale < 1.1f) 1.15f else 1.07f
 
-        oldView.animate()
-            .alpha(0f)
-            .setDuration(FADE_MS)
-            .withEndAction { if (oldView !== imageViews[activeIndex]) oldView.setImageDrawable(null) }
-            .start()
+        newView.scaleX = startScale
+        newView.scaleY = startScale
+        newView.translationX = -xTravel * xDirection
+        newView.translationY = -yTravel * yDirection
+
+        val motion = ObjectAnimator.ofPropertyValuesHolder(
+            newView,
+            PropertyValuesHolder.ofFloat(View.SCALE_X, startScale, endScale),
+            PropertyValuesHolder.ofFloat(View.SCALE_Y, startScale, endScale),
+            PropertyValuesHolder.ofFloat(
+                View.TRANSLATION_X,
+                -xTravel * xDirection,
+                xTravel * xDirection
+            ),
+            PropertyValuesHolder.ofFloat(
+                View.TRANSLATION_Y,
+                -yTravel * yDirection,
+                yTravel * yDirection
+            )
+        ).apply {
+            duration = intervalMs + CROSSFADE_MS
+            interpolator = LinearInterpolator()
+        }
+
+        val animations = mutableListOf<Animator>(motion)
+        if (hasPreviousImage) {
+            val fadeIn = ObjectAnimator.ofFloat(newView, View.ALPHA, 0f, 1f).apply {
+                duration = CROSSFADE_MS
+                interpolator = DecelerateInterpolator()
+                addListener(object : AnimatorListenerAdapter() {
+                    private var cancelled = false
+
+                    override fun onAnimationCancel(animation: Animator) {
+                        cancelled = true
+                    }
+
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (!cancelled && running && oldView !== imageViews[activeIndex]) {
+                            viewAnimators.remove(oldView)?.cancel()
+                            oldView.alpha = 0f
+                            oldView.setImageDrawable(null)
+                            oldView.tag = null
+                        }
+                    }
+                })
+            }
+            animations += fadeIn
+        }
+
+        AnimatorSet().also { set ->
+            viewAnimators[newView] = set
+            set.playTogether(animations)
+            set.addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (viewAnimators[newView] === set) viewAnimators.remove(newView)
+                }
+            })
+            set.start()
+        }
     }
 
     private fun createImageView() = ImageView(context).apply {
@@ -179,13 +231,14 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
 
     private fun stopAnimationsOnly() {
         mainHandler.removeCallbacks(nextPhoto)
-        imageViews.forEach { it.animate().cancel() }
+        viewAnimators.values.toList().forEach { it.cancel() }
+        viewAnimators.clear()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).roundToInt()
 
     companion object {
         private const val MAX_DECODE_EDGE = 2560
-        private const val FADE_MS = 1_200L
+        private const val CROSSFADE_MS = 2_000L
     }
 }
