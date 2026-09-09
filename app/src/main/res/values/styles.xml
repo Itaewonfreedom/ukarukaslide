@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.UkarukaSlide" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#635BFF</item>
+        <item name="android:navigationBarColor">#0B0B0F</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F7F6FB</item>
+    </style>
+</resources>

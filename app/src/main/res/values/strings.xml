@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Ukaruka Slide</string>
+    <string name="dream_name">Ukaruka Slide</string>
+    <string name="dream_description">선택한 사진을 부드럽게 움직이며 랜덤 재생합니다.</string>
+</resources>
