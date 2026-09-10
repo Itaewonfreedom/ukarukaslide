@@ -11,8 +11,8 @@ android {
         applicationId = "com.ukaruka.slide"
         minSdk = 28
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.3.4"
+        versionCode = 9
+        versionName = "0.4.0"
     }
 
     buildTypes {
@@ -39,4 +39,5 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("com.google.android.material:material:1.14.0")
+    testImplementation("junit:junit:4.13.2")
 }

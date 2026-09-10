@@ -6,7 +6,12 @@ import android.net.Uri
 import android.provider.MediaStore
 
 data class DeviceAlbum(val id: String, val name: String, val photoCount: Int)
-data class SlidePhoto(val uri: Uri, val capturedAtMs: Long)
+data class SlidePhoto(
+    val uri: Uri, val capturedAtMs: Long, val albumId: String = "",
+    val width: Int = 0, val height: Int = 0, val dateIsCapture: Boolean = true
+) {
+    val portrait get() = height > width && width > 0
+}
 
 class PhotoRepository(private val context: Context) {
     private val resolver = context.contentResolver
@@ -53,7 +58,11 @@ class PhotoRepository(private val context: Context) {
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DATE_TAKEN,
-            MediaStore.Images.Media.DATE_ADDED
+            MediaStore.Images.Media.DATE_ADDED,
+            MediaStore.Images.Media.BUCKET_ID,
+            MediaStore.Images.Media.WIDTH,
+            MediaStore.Images.Media.HEIGHT,
+            MediaStore.Images.Media.ORIENTATION
         )
         val photos = mutableListOf<SlidePhoto>()
         val placeholders = albumIds.joinToString(",") { "?" }
@@ -68,12 +77,20 @@ class PhotoRepository(private val context: Context) {
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             val takenColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_TAKEN)
             val addedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+            val bucketColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_ID)
+            val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.WIDTH)
+            val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.HEIGHT)
+            val rotationColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.ORIENTATION)
             while (cursor.moveToNext()) {
                 val takenAt = cursor.getLong(takenColumn).takeIf { it > 0L }
                     ?: cursor.getLong(addedColumn).times(1_000L)
                 photos += SlidePhoto(
                     uri = ContentUris.withAppendedId(collection, cursor.getLong(idColumn)),
-                    capturedAtMs = takenAt
+                    capturedAtMs = takenAt,
+                    albumId = cursor.getString(bucketColumn).orEmpty(),
+                    width = cursor.getInt(if (cursor.getInt(rotationColumn) % 180 == 0) widthColumn else heightColumn),
+                    height = cursor.getInt(if (cursor.getInt(rotationColumn) % 180 == 0) heightColumn else widthColumn),
+                    dateIsCapture = cursor.getLong(takenColumn) > 0
                 )
             }
         }

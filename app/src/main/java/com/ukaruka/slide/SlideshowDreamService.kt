@@ -8,6 +8,7 @@ import kotlin.concurrent.thread
 class SlideshowDreamService : DreamService() {
     private lateinit var display: AmbientDisplayView
     @Volatile private var dreamingStarted = false
+    private var nightMode: NightModeController? = null
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -16,11 +17,13 @@ class SlideshowDreamService : DreamService() {
         isScreenBright = true
         display = AmbientDisplayView(this)
         setContentView(display)
+        window?.let { nightMode = NightModeController(this, it, display) }
     }
 
     override fun onDreamingStarted() {
         super.onDreamingStarted()
         dreamingStarted = true
+        nightMode?.start()
         val store = PhotoSourceStore(this)
         thread(name = "dream-source-loader") {
             val photos = PhotoRepository(this).loadConfiguredPhotos(store)
@@ -34,12 +37,14 @@ class SlideshowDreamService : DreamService() {
 
     override fun onDreamingStopped() {
         dreamingStarted = false
+        nightMode?.stop()
         display.stop()
         super.onDreamingStopped()
     }
 
     override fun onDetachedFromWindow() {
         dreamingStarted = false
+        nightMode?.stop()
         display.release()
         super.onDetachedFromWindow()
     }

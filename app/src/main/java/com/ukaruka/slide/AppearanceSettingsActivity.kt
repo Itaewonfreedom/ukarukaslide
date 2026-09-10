@@ -1,6 +1,7 @@
 package com.ukaruka.slide
 
 import android.graphics.Color
+import android.app.TimePickerDialog
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -21,6 +22,7 @@ import kotlin.math.roundToInt
 
 class AppearanceSettingsActivity : AppCompatActivity() {
     private lateinit var store: DisplayStyleStore
+    private lateinit var playback: PlaybackPreferences
     private lateinit var previewTime: TextClock
     private lateinit var previewDate: TextClock
     private lateinit var previewClock: LinearLayout
@@ -30,6 +32,7 @@ class AppearanceSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = DisplayStyleStore(this)
+        playback = PlaybackPreferences(this)
         setContentView(buildContent())
         applyPreview()
     }
@@ -50,7 +53,24 @@ class AppearanceSettingsActivity : AppCompatActivity() {
                 strokeWidth = 0
                 setOnClickListener { finish() }
             }, LinearLayout.LayoutParams(-2, dp(48)))
-            addView(title("시계와 날짜"))
+            addView(title("화면과 재생"))
+            addView(sectionTitle("사진"), top(24))
+            addView(toggle("얼굴과 원본 구도 보호", playback.faceFraming) { playback.faceFraming = it })
+            addView(body("기기 안에서 얼굴을 찾습니다. 얼굴을 찾지 못하거나 잘릴 수 있으면 여백을 남겨 사진을 보여줍니다."), top(6))
+            addView(toggle("세로 사진 두 장 나란히", playback.portraitPairs) { playback.portraitPairs = it })
+            addView(body("가로 화면에서 같은 추억 묶음의 세로 사진을 짝지어 보여줍니다."), top(6))
+            addView(toggle("연사 후보 줄이기", playback.reduceBursts) { playback.reduceBursts = it })
+            addView(body("같은 앨범에서 2초 안에 찍은 사진 중 한 장을 골라 재생합니다. 다음 회차에는 다른 사진이 선택될 수 있습니다."), top(6))
+            addView(MaterialButton(context).apply {
+                fun refresh() { text = "숨긴 사진 복원 (${playback.hidden.size}장)" }
+                refresh()
+                isAllCaps = false
+                setOnClickListener {
+                    playback.restoreHidden()
+                    refresh()
+                }
+            }, top(12))
+            addView(body("재생 화면: 터치하면 날짜·메뉴, 좌우 스와이프로 이전·다음, 길게 눌러 일시정지. 숨겨도 원본은 삭제되지 않습니다."), top(10))
             addView(buildPreview(), top(24, 230))
 
             addView(sectionTitle("시계"), top(30))
@@ -86,6 +106,46 @@ class AppearanceSettingsActivity : AppCompatActivity() {
             addView(settingLabel("기준 위치"), top(20))
             addView(buildPositionGroup(), top(8))
             addView(body("번인 완화를 위해 재생 중에는 이 위치 주변에서 조금씩 이동합니다."), top(10))
+
+            addView(sectionTitle("야간"), top(30))
+            addView(toggle("야간 모드 사용", playback.nightEnabled) { playback.nightEnabled = it })
+            fun timeButton(start: Boolean) = MaterialButton(context).apply {
+                fun minutes() = if (start) playback.nightStart else playback.nightEnd
+                fun refresh() {
+                    val value = minutes()
+                    text = (if (start) "시작  " else "종료  ") +
+                        String.format(java.util.Locale.getDefault(), "%02d:%02d", value / 60, value % 60)
+                }
+                refresh()
+                isAllCaps = false
+                setOnClickListener {
+                    val value = minutes()
+                    TimePickerDialog(this@AppearanceSettingsActivity, { _, hour, minute ->
+                        if (start) playback.nightStart = hour * 60 + minute
+                        else playback.nightEnd = hour * 60 + minute
+                        refresh()
+                    }, value / 60, value % 60, true).show()
+                }
+            }
+            addView(timeButton(true), top(8))
+            addView(timeButton(false), top(4))
+            addView(body("기기의 현재 시각을 따릅니다. 시작과 종료가 같으면 야간 모드를 적용하지 않습니다."), top(6))
+            val nightLabel = settingLabel("야간 화면 밝기  ·  ${playback.nightBrightness}%")
+            addView(nightLabel, top(16))
+            addView(Slider(context).apply {
+                valueFrom = 5f
+                valueTo = 50f
+                stepSize = 5f
+                value = playback.nightBrightness.toFloat()
+                addOnChangeListener { _, value, fromUser ->
+                    if (fromUser) {
+                        playback.nightBrightness = value.roundToInt()
+                        nightLabel.text = "야간 화면 밝기  ·  ${value.roundToInt()}%"
+                    }
+                }
+            })
+            addView(toggle("야간에는 완전히 검은 화면", playback.nightBlack) { playback.nightBlack = it })
+            addView(body("검은 화면에서는 사진과 시계를 숨기고 재생을 쉽니다. 종료 시각에 다시 이어집니다. 앱을 종료하면 원래 밝기로 돌아갑니다."), top(8))
 
             addView(MaterialButton(context).apply {
                 text = "완료"

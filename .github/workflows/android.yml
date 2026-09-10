@@ -19,7 +19,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Compile Android source
-        run: ./gradlew :app:compileDebugKotlin --stacktrace
+        run: ./gradlew :app:compileDebugKotlin :app:testDebugUnitTest --stacktrace
       - name: Build debug APK on manual request
         if: github.event_name == 'workflow_dispatch'
         run: ./gradlew :app:assembleDebug --stacktrace

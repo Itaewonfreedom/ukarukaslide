@@ -9,6 +9,7 @@ import kotlin.concurrent.thread
 class PreviewActivity : Activity() {
     private lateinit var display: AmbientDisplayView
     private var active = false
+    private lateinit var nightMode: NightModeController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,11 +21,13 @@ class PreviewActivity : Activity() {
             )
         display = AmbientDisplayView(this)
         setContentView(display)
+        nightMode = NightModeController(this, window, display)
     }
 
     override fun onStart() {
         super.onStart()
         active = true
+        nightMode.start()
         val store = PhotoSourceStore(this)
         thread(name = "preview-source-loader") {
             val photos = PhotoRepository(this).loadConfiguredPhotos(store)
@@ -36,6 +39,7 @@ class PreviewActivity : Activity() {
 
     override fun onStop() {
         active = false
+        nightMode.stop()
         display.stop()
         super.onStop()
     }

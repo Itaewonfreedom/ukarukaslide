@@ -21,6 +21,12 @@ class AmbientDisplayView(context: Context) : FrameLayout(context) {
     private val clockContainer = LinearLayout(context)
     private val timeView = TextClock(context)
     private val dateView = TextClock(context)
+    private val nightCover = View(context).apply {
+        setBackgroundColor(Color.BLACK)
+        visibility = View.GONE
+        isClickable = true
+        contentDescription = "야간 검은 화면. 뒤로 가기로 종료할 수 있습니다."
+    }
     private val burnInHandler = Handler(Looper.getMainLooper())
     private val burnInShift = object : Runnable {
         override fun run() {
@@ -41,6 +47,13 @@ class AmbientDisplayView(context: Context) : FrameLayout(context) {
         configureClock()
         burnInHandler.post(burnInShift)
         clockContainer.bringToFront()
+        addView(nightCover, LayoutParams(-1, -1))
+    }
+
+    fun setNight(enabled: Boolean, black: Boolean) {
+        clockContainer.alpha = if (enabled) 0.35f else 1f
+        nightCover.visibility = if (black) View.VISIBLE else View.GONE
+        player.setNightPaused(black)
     }
 
     fun start(
@@ -49,9 +62,15 @@ class AmbientDisplayView(context: Context) : FrameLayout(context) {
         playbackOrder: PhotoSourceStore.PlaybackOrder
     ) {
         player.start(photos, slideIntervalMs, playbackOrder)
+        burnInHandler.removeCallbacks(burnInShift)
+        burnInHandler.post(burnInShift)
     }
 
-    fun stop() = player.stop()
+    fun stop() {
+        burnInHandler.removeCallbacks(burnInShift)
+        clockContainer.animate().cancel()
+        player.stop()
+    }
     fun release() {
         burnInHandler.removeCallbacks(burnInShift)
         clockContainer.animate().cancel()
