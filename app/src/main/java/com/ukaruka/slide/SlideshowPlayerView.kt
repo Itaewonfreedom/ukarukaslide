@@ -39,6 +39,7 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     private var nightPaused = false
     private var loading = false
     private var pendingDisplay: (() -> Unit)? = null
+    private var pendingFreshPhotos = emptyList<SlidePhoto>()
     private var generation = 0
     private var interval = 15_000L
     private var order = PhotoSourceStore.PlaybackOrder.RANDOM
@@ -151,6 +152,7 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
         generation++
         loading = false
         pendingDisplay = null
+        pendingFreshPhotos = emptyList()
         removeCallbacks(frame)
         handler.removeCallbacksAndMessages(null)
         controls.visibility = View.GONE
@@ -180,6 +182,7 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
         if (running && !paused) {
             val pending = pendingDisplay
             pendingDisplay = null
+            pendingFreshPhotos = emptyList()
             pending?.invoke()
         }
         if (running && !paused) postOnAnimation(frame)
@@ -215,6 +218,12 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     }
 
     private fun navigate(direction: Int, manual: Boolean = true) {
+        if (manual && pendingDisplay != null) {
+            pendingDisplay = null
+            pendingFreshPhotos.asReversed().forEach(queue::addFirst)
+            pendingFreshPhotos = emptyList()
+            loading = false
+        }
         if (!running || loading) return
         var targetIndex = historyIndex + direction
         val selected = if (targetIndex in history.indices) history[targetIndex] else {
@@ -292,8 +301,10 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
             }
             handler.post {
                 if (!running || token != generation) return@post
-                if (paused && !manual && active != null) pendingDisplay = deliver
-                else deliver()
+                if (paused && !manual && active != null) {
+                    pendingDisplay = deliver
+                    pendingFreshPhotos = if (targetIndex >= history.size) selected else emptyList()
+                } else deliver()
             }
         }
     }

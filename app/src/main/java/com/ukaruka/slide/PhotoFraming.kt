@@ -43,8 +43,7 @@ class FramedPhotoView(context: Context, private val prepared: PreparedPhoto,
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val matrix = Matrix()
     private var progress = 0f
-    private var start = floatArrayOf(1f, 0f, 0f)
-    private var end = start.copyOf()
+    private var path: FramingPath? = null
     private val dx = Random.nextBoolean()
     private val dy = Random.nextBoolean()
     private val zoomIn = Random.nextBoolean()
@@ -53,44 +52,15 @@ class FramedPhotoView(context: Context, private val prepared: PreparedPhoto,
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         if (w <= 0 || h <= 0) return
-        val bw = prepared.bitmap.width.toFloat()
-        val bh = prepared.bitmap.height.toFloat()
-        val fit = min(w / bw, h / bh)
-        val cover = max(w / bw, h / bh)
-        val faces = if (protectFaces) prepared.faces else null
-        val margin = min(w, h) * 0.025f
-        val maxScale = if (!protectFaces) cover * 1.08f
-            else if (faces == null) fit * 0.96f
-            else min(cover * 1.08f, min(
-                (w - margin * 2) / (faces.width() * bw).coerceAtLeast(1f),
-                (h - margin * 2) / (faces.height() * bh).coerceAtLeast(1f)
-            ))
-        fun offset(view: Float, size: Float, scale: Float, lo: Float?, hi: Float?, fraction: Float): Float {
-            val gap = view - size * scale
-            var low = min(0f, gap)
-            var high = max(0f, gap)
-            if (lo != null && hi != null) {
-                low = max(low, margin - lo * size * scale)
-                high = min(high, view - margin - hi * size * scale)
-            }
-            if (low > high) return (low + high) / 2f
-            return low + (high - low) * fraction
-        }
-        fun endpoint(scale: Float, fraction: Float) = floatArrayOf(
-            scale,
-            offset(w.toFloat(), bw, scale, faces?.left, faces?.right, if (dx) fraction else 1 - fraction),
-            offset(h.toFloat(), bh, scale, faces?.top, faces?.bottom, if (dy) fraction else 1 - fraction)
-        )
-        val smaller = maxScale / 1.035f
-        start = endpoint(if (zoomIn) smaller else maxScale, 0.35f)
-        end = endpoint(if (zoomIn) maxScale else smaller, 0.65f)
+        val faces = prepared.faces?.let { FaceBounds(it.left, it.top, it.right, it.bottom) }
+        path = FramingPath(w.toFloat(), h.toFloat(), prepared.bitmap.width.toFloat(),
+            prepared.bitmap.height.toFloat(), protectFaces, faces, dx, dy, zoomIn)
     }
 
     override fun onDraw(canvas: Canvas) {
-        val scale = start[0] + (end[0] - start[0]) * progress
-        matrix.setScale(scale, scale)
-        matrix.postTranslate(start[1] + (end[1] - start[1]) * progress,
-            start[2] + (end[2] - start[2]) * progress)
+        val transform = path?.at(progress) ?: return
+        matrix.setScale(transform.scale, transform.scale)
+        matrix.postTranslate(transform.x, transform.y)
         canvas.drawBitmap(prepared.bitmap, matrix, paint)
     }
 }
