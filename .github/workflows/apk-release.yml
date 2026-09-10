@@ -1,0 +1,34 @@
+name: Requested APK build
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ .github/workflows/apk-release.yml ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify and build release 0.4.0
+        run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --stacktrace
+      - name: Collect unsigned APK and public signing tools
+        run: |
+          mkdir -p apk-package
+          cp app/build/outputs/apk/release/app-release-unsigned.apk apk-package/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" apk-package/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" apk-package/
+          cp app/build/reports/lint-results-release.html apk-package/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ukarukaslide-release-unsigned
+          path: apk-package/
+          retention-days: 7
