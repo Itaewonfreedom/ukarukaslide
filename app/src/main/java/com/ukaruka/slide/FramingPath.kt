@@ -15,23 +15,23 @@ class FramingPath(
     init {
         require(w > 0 && h > 0 && bw > 0 && bh > 0)
         val faces = if (protect) detected else null
-        val fit = min(w / bw, h / bh)
         val cover = max(w / bw, h / bh)
         val margin = min(w, h) * 0.025f
-        val maxScale = if (!protect) cover * 1.08f
-            else if (faces == null) fit * 0.96f
-            else min(cover * 1.08f, min(
-                (w - margin * 2) / ((faces.right - faces.left) * bw).coerceAtLeast(1f),
-                (h - margin * 2) / ((faces.bottom - faces.top) * bh).coerceAtLeast(1f)))
+        // Filling the viewport takes priority; face detection only guides the crop.
+        val maxScale = cover * 1.06f
         fun offset(view: Float, size: Float, scale: Float, lo: Float?, hi: Float?, fraction: Float): Float {
-            val gap = view - size * scale
-            var low = min(0f, gap)
-            var high = max(0f, gap)
+            val coverLow = min(0f, view - size * scale)
+            val coverHigh = 0f
+            var low = coverLow
+            var high = coverHigh
             if (lo != null && hi != null) {
                 low = max(low, margin - lo * size * scale)
                 high = min(high, view - margin - hi * size * scale)
             }
-            return if (low > high) (low + high) / 2 else low + (high - low) * fraction
+            return if (low > high) {
+                // When all faces cannot fit, center their bounds without exposing the background.
+                (view / 2 - (lo!! + hi!!) / 2 * size * scale).coerceIn(coverLow, coverHigh)
+            } else low + (high - low) * fraction
         }
         fun endpoint(scale: Float, fraction: Float) = PhotoTransform(scale,
             offset(w, bw, scale, faces?.left, faces?.right, if (dx) fraction else 1 - fraction),

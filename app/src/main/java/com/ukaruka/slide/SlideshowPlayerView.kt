@@ -66,10 +66,8 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
         init {
             orientation = HORIZONTAL
             setBackgroundColor(Color.BLACK)
-            images.forEachIndexed { index, view ->
-                addView(view, LinearLayout.LayoutParams(0, -1, 1f).apply {
-                    if (index > 0) marginStart = dp(8)
-                })
+            images.forEach { view ->
+                addView(view, LinearLayout.LayoutParams(0, -1, 1f))
             }
         }
     }
