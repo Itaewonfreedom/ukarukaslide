@@ -18,7 +18,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verify and build release 0.4.0
+      - name: Verify and build release 0.4.1
         run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --stacktrace
       - name: Collect unsigned APK and public signing tools
         run: |
