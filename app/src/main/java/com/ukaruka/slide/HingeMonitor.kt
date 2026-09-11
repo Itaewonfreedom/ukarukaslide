@@ -46,6 +46,13 @@ class HingeMonitor(context: Context, private val update: (Float?) -> Unit) : Sen
     }
     var status = if (sources.isEmpty()) "힌지 각도 센서 미지원" else "힌지 센서 대기"
         private set
+    /** Every sensor on the device, for finding a hidden angle or second IMU on the test screen. */
+    fun sensorDump(): String = manager.getSensorList(Sensor.TYPE_ALL).joinToString("\n") { s ->
+        "${s.name} · type ${s.type} ${s.stringType} · res ${fmt(s.resolution)} · max ${fmt(s.maxRange)} · ${s.vendor}"
+    }
+    /** Last raw reading of the driving sensor, for calibrating the IMU estimate. */
+    var rawAngle = Float.NaN
+        private set
     /** True once the driving sensor has proven to step between postures only. */
     val coarse: Boolean get() = smoother.coarse
     private var running = false
@@ -66,7 +73,7 @@ class HingeMonitor(context: Context, private val update: (Float?) -> Unit) : Sen
     }
     fun stop() {
         manager.unregisterListener(this); running = false
-        choreographer.removeFrameCallback(frame); smoother.reset()
+        choreographer.removeFrameCallback(frame); smoother.reset(); rawAngle = Float.NaN
         sources.forEach { it.last = Float.NaN; it.step = Float.NaN; it.samples = 0; it.trusted = true }
         active = sources.firstOrNull { it.platform } ?: sources.firstOrNull()
         update(null)
@@ -86,6 +93,7 @@ class HingeMonitor(context: Context, private val update: (Float?) -> Unit) : Sen
         if (current.platform && finerVendor) active = source
         else if (!current.trusted && platform != null) active = platform
         if (active !== source) return
+        rawAngle = angle
         smoother.sample(angle, event.timestamp)
         val mode = if (smoother.coarse) "${smoother.levels}단계 센서 · 스프링 보간" else "연속 센서"
         status = "${source.label} ${angle.toInt()}° · 간격 ${smoother.intervalMs}ms · $mode"
