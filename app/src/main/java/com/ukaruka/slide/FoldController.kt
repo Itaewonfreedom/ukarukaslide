@@ -41,7 +41,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     private val status = TextView(activity).apply {
         setTextColor(android.graphics.Color.WHITE); setBackgroundColor(0xAA000000.toInt())
         setPadding(16, 16, 16, 16); textSize = 11f
-        maxLines = 20; movementMethod = android.text.method.ScrollingMovementMethod()
+        maxLines = 22; movementMethod = android.text.method.ScrollingMovementMethod()
         setOnLongClickListener {
             val clipboard = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("hinge sensors", "$text\n\n${monitor.sensorDump()}"))
