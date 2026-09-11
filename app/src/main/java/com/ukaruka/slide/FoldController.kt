@@ -1,0 +1,109 @@
+package com.ukaruka.slide
+
+import android.view.Gravity
+import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.window.area.WindowAreaController
+import androidx.window.area.WindowAreaCapability
+import androidx.window.area.WindowAreaInfo
+import androidx.window.area.WindowAreaPresentationSessionCallback
+import androidx.window.area.WindowAreaSessionPresenter
+import androidx.window.layout.FoldingFeature
+import androidx.window.layout.WindowInfoTracker
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+
+/** Public APIs only. Dual-screen sessions require the explicit test entry point. */
+@OptIn(androidx.window.core.ExperimentalWindowApi::class)
+class FoldController(private val activity: ComponentActivity, private val surface: FoldSurface,
+    private val scene: AmbientDisplayView, private val dualTest: Boolean) {
+    private val enabled = PlaybackPreferences(activity).foldEffect || dualTest
+    private var active = false
+    private var postureJob: Job? = null
+    private var areaJob: Job? = null
+    private var session: WindowAreaSessionPresenter? = null
+    private var mirror: FoldSurface? = null
+    private var requested = false
+    private var horizontalFold = false
+    private var latestAngle: Float? = null
+    private var dualStatus = "양쪽 화면 지원 확인 중"
+    private val status = TextView(activity).apply {
+        setTextColor(android.graphics.Color.WHITE); setBackgroundColor(0xAA000000.toInt())
+        setPadding(16, 16, 16, 16); textSize = 12f
+    }
+    private val monitor = HingeMonitor(activity) { angle ->
+        latestAngle = angle
+        surface.angle = if (horizontalFold) null else angle
+        mirror?.angle = if (horizontalFold) null else angle
+        updateStatus()
+    }
+    init {
+        if (dualTest) activity.addContentView(status, android.widget.FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+        surface.inner = activity.resources.configuration.smallestScreenWidthDp >= 600
+    }
+    private fun updateStatus() {
+        if (dualTest) status.text = "${latestAngle?.let { "힌지 ${it.toInt()}°" } ?: "힌지 각도 대기/미지원"} · $dualStatus"
+    }
+    fun start() {
+        if (!enabled || active) return
+        active = true; monitor.start()
+        postureJob = activity.lifecycleScope.launch {
+            try {
+                WindowInfoTracker.getOrCreate(activity).windowLayoutInfo(activity).collect { layout ->
+                    val feature = layout.displayFeatures.filterIsInstance<FoldingFeature>().firstOrNull()
+                    surface.inner = feature != null || activity.resources.configuration.smallestScreenWidthDp >= 600
+                    horizontalFold = feature?.orientation == FoldingFeature.Orientation.HORIZONTAL
+                    surface.hingeX = feature?.takeIf { !horizontalFold }?.bounds?.centerX()?.toFloat()
+                    surface.angle = if (horizontalFold) null else latestAngle
+                    surface.invalidate()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { surface.angle = null }
+        }
+        if (!dualTest) return
+        requested = false
+        areaJob = activity.lifecycleScope.launch {
+            try {
+                val controller = WindowAreaController.getOrCreate()
+                controller.windowAreaInfos.collect { infos ->
+                    val area = infos.firstOrNull { it.type == WindowAreaInfo.Type.TYPE_REAR_FACING }
+                    val capability = area?.getCapability(WindowAreaCapability.Operation.OPERATION_PRESENT_ON_AREA)?.status
+                    dualStatus = when (capability) {
+                        WindowAreaCapability.Status.WINDOW_AREA_STATUS_AVAILABLE -> "양쪽 화면 사용 가능"
+                        WindowAreaCapability.Status.WINDOW_AREA_STATUS_ACTIVE -> "양쪽 화면 활성"
+                        WindowAreaCapability.Status.WINDOW_AREA_STATUS_UNAVAILABLE -> "현재 자세에서는 양쪽 화면 사용 불가"
+                        else -> "이 기기는 양쪽 화면 API 미지원"
+                    }
+                    updateStatus()
+                    if (area != null && capability == WindowAreaCapability.Status.WINDOW_AREA_STATUS_AVAILABLE && !requested) {
+                        requested = true
+                        controller.presentContentOnWindowArea(area.token, activity, activity.mainExecutor,
+                            object : WindowAreaPresentationSessionCallback {
+                                override fun onSessionStarted(s: WindowAreaSessionPresenter) {
+                                    if (!active) { s.close(); return }
+                                    session = s
+                                    mirror = FoldSurface(s.context, scene).apply { inner = false; angle = latestAngle }
+                                    s.setContentView(mirror!!)
+                                }
+                                override fun onSessionEnded(t: Throwable?) {
+                                    session = null; mirror = null
+                                    dualStatus = if (t == null) "양쪽 화면 세션 종료" else "양쪽 화면 시작 실패 · 일반 재생"
+                                    updateStatus()
+                                }
+                                override fun onContainerVisibilityChanged(isVisible: Boolean) {
+                                    mirror?.visibility = if (isVisible) android.view.View.VISIBLE else android.view.View.INVISIBLE
+                                }
+                            })
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { dualStatus = "양쪽 화면을 사용할 수 없음 · 일반 재생"; updateStatus() }
+        }
+    }
+    fun stop() {
+        active = false; postureJob?.cancel(); areaJob?.cancel(); monitor.stop()
+        session?.close(); session = null; mirror = null
+        surface.angle = null
+    }
+}

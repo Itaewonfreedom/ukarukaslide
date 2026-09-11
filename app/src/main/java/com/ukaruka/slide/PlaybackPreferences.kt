@@ -4,6 +4,9 @@ import android.content.Context
 
 class PlaybackPreferences(context: Context) {
     private val prefs = context.getSharedPreferences("playback_experience", Context.MODE_PRIVATE)
+    var foldEffect: Boolean
+        get() = prefs.getBoolean("fold_effect", false)
+        set(value) { prefs.edit().putBoolean("fold_effect", value).apply() }
     var faceFraming: Boolean
         get() = prefs.getBoolean("face", true)
         set(value) { prefs.edit().putBoolean("face", value).apply() }

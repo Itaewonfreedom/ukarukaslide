@@ -7,7 +7,9 @@ import android.view.View
 import kotlin.math.*
 import kotlin.random.Random
 
-data class PreparedPhoto(val photo: SlidePhoto, val bitmap: Bitmap, val faces: RectF?)
+data class PreparedPhoto(val photo: SlidePhoto, val bitmap: Bitmap, val faces: RectF?,
+    val dx: Boolean = Random.nextBoolean(), val dy: Boolean = Random.nextBoolean(),
+    val zoomIn: Boolean = Random.nextBoolean())
 
 object FaceFraming {
     @Suppress("DEPRECATION")
@@ -44,9 +46,9 @@ class FramedPhotoView(context: Context, private val prepared: PreparedPhoto,
     private val matrix = Matrix()
     private var progress = 0f
     private var path: FramingPath? = null
-    private val dx = Random.nextBoolean()
-    private val dy = Random.nextBoolean()
-    private val zoomIn = Random.nextBoolean()
+    private val dx = prepared.dx
+    private val dy = prepared.dy
+    private val zoomIn = prepared.zoomIn
 
     fun progress(value: Float) { progress = value; invalidate() }
 

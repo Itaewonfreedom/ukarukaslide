@@ -77,6 +77,19 @@ class AmbientDisplayView(context: Context) : FrameLayout(context) {
         player.release()
     }
 
+    fun snapshot() = player.snapshot()
+    fun restore(state: SlideshowPlayerView.Snapshot) { player.restore(state) }
+    fun suspendPlayback() {
+        burnInHandler.removeCallbacks(burnInShift)
+        clockContainer.animate().cancel()
+        player.suspendPlayback()
+    }
+    fun resumePlayback() {
+        player.resumePlayback()
+        burnInHandler.removeCallbacks(burnInShift)
+        burnInHandler.post(burnInShift)
+    }
+
     private fun configureClock() {
         clockContainer.orientation = LinearLayout.VERTICAL
         clockContainer.visibility = if (style.clockEnabled) View.VISIBLE else View.GONE

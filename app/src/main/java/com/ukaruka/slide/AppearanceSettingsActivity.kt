@@ -54,6 +54,18 @@ class AppearanceSettingsActivity : AppCompatActivity() {
                 setOnClickListener { finish() }
             }, LinearLayout.LayoutParams(-2, dp(48)))
             addView(title("화면과 재생"))
+            addView(sectionTitle("폴더블 · 실험 기능"), top(24))
+            addView(toggle("힌지 홀로그램 전환", playback.foldEffect) { playback.foldEffect = it })
+            addView(body("접고 펼치는 각도에 따라 사진의 원근과 선명도가 바뀝니다. 센서를 지원하지 않으면 일반 재생합니다. 책처럼 좌우로 접는 화면용입니다."), top(6))
+            addView(MaterialButton(context).apply {
+                text = "힌지 · 양쪽 화면 테스트"
+                isAllCaps = false
+                setOnClickListener {
+                    startActivity(android.content.Intent(this@AppearanceSettingsActivity, PreviewActivity::class.java)
+                        .putExtra("dual_screen_test", true))
+                }
+            }, top(10))
+            addView(body("테스트 화면에 힌지 각도와 양쪽 화면 지원 상태가 표시됩니다. 지원 기기에서는 시스템 확인창이 나타날 수 있습니다. 화면이 켜지는 시점은 기기에서 결정합니다."), top(6))
             addView(sectionTitle("사진"), top(24))
             addView(toggle("얼굴 중심으로 구도 맞추기", playback.faceFraming) { playback.faceFraming = it })
             addView(body("사진은 항상 화면을 꽉 채웁니다. 얼굴을 찾으면 얼굴 쪽으로 구도를 맞추며, 화면 비율에 따라 가장자리는 잘릴 수 있습니다."), top(6))

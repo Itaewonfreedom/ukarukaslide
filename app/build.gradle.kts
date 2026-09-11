@@ -36,6 +36,8 @@ android {
 }
 
 dependencies {
+    implementation("androidx.window:window:1.3.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("com.google.android.material:material:1.14.0")

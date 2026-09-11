@@ -37,6 +37,7 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     private var running = false
     private var userPaused = false
     private var nightPaused = false
+    private var lifecyclePaused = false
     private var loading = false
     private var pendingDisplay: (() -> Unit)? = null
     private var pendingFreshPhotos = emptyList<SlidePhoto>()
@@ -46,7 +47,38 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     private var elapsed = 0L
     private var lastFrame = 0L
     private var nextAt = Long.MAX_VALUE
-    private val paused get() = userPaused || nightPaused
+    private val paused get() = userPaused || nightPaused || lifecyclePaused
+    data class LayerState(val photos: List<PreparedPhoto>, val born: Long, val alpha: Float)
+    data class Snapshot(val all: List<SlidePhoto>, val queue: List<SlidePhoto>,
+        val history: List<List<SlidePhoto>>, val index: Int, val interval: Long,
+        val order: PhotoSourceStore.PlaybackOrder, val elapsed: Long, val nextAt: Long,
+        val userPaused: Boolean, val active: LayerState?, val outgoing: LayerState?)
+    private var inFlight = emptyList<SlidePhoto>()
+    private var inFlightFresh = false
+    fun snapshot(): Snapshot = Snapshot(allPhotos, (if (inFlightFresh) inFlight else emptyList()) + queue.toList(),
+        history.toList(), historyIndex, interval, order, elapsed, nextAt, userPaused,
+        active?.let { LayerState(it.photos, it.born, it.alpha) },
+        outgoing?.let { LayerState(it.photos, it.born, it.alpha) })
+    fun restore(s: Snapshot) {
+        stop()
+        allPhotos = s.all; queue.clear(); queue.addAll(s.queue)
+        history.clear(); history.addAll(s.history); historyIndex = s.index
+        interval = s.interval; order = s.order; elapsed = s.elapsed; nextAt = s.nextAt
+        userPaused = s.userPaused
+        current = s.active?.photos?.map { it.photo } ?: emptyList()
+        listOfNotNull(active, outgoing).forEach(::removeView)
+        fun layer(state: LayerState?): Layer? = state?.let {
+            Layer(it.photos, it.born).apply { alpha = it.alpha; this@SlideshowPlayerView.addView(this, 0, LayoutParams(-1, -1)) }
+        }
+        outgoing = layer(s.outgoing); active = layer(s.active)
+        active?.bringToFront(); empty.bringToFront(); controls.bringToFront()
+        empty.visibility = if (active == null) View.VISIBLE else View.GONE
+        running = true
+        if (active == null) post { if (running) navigate(1) }
+        resumeFrames()
+    }
+    fun suspendPlayback() { lifecyclePaused = true; removeCallbacks(frame); controls.visibility = View.GONE }
+    fun resumePlayback() { lifecyclePaused = false; resumeFrames() }
     private val empty = TextView(context).apply {
         text = "앨범을 선택해 주세요."
         setTextColor(Color.WHITE)
@@ -60,13 +92,14 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
         visibility = View.GONE
     }
     private val hideControls = Runnable { controls.visibility = View.GONE }
-    private inner class Layer(val photos: List<PreparedPhoto>) : LinearLayout(context) {
-        val born = elapsed
+    private inner class Layer(val photos: List<PreparedPhoto>, val born: Long = elapsed) : LinearLayout(context) {
         val images = photos.map { FramedPhotoView(context, it, preferences.faceFraming) }
         init {
             orientation = HORIZONTAL
             setBackgroundColor(Color.BLACK)
             images.forEach { view ->
+                val age = (elapsed - born).coerceAtLeast(0).toDouble()
+                view.progress((age / (age + interval + FADE_MS)).toFloat())
                 addView(view, LinearLayout.LayoutParams(0, -1, 1f))
             }
         }
@@ -146,6 +179,8 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     }
 
     fun stop() {
+        inFlight = emptyList()
+        inFlightFresh = false
         running = false
         generation++
         loading = false
@@ -240,6 +275,8 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
 
     private fun load(selected: List<SlidePhoto>, targetIndex: Int, manual: Boolean = true) {
         loading = true
+        inFlight = selected
+        inFlightFresh = targetIndex >= history.size
         val token = generation
         val protect = preferences.faceFraming
         decoder.execute {
@@ -258,6 +295,8 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
             val deliver = deliver@{
                 if (!running || token != generation) return@deliver
                 loading = false
+                inFlight = emptyList()
+                inFlightFresh = false
                 val valid = prepared.filterNot { it.photo.uri.toString() in preferences.hidden }
                 val bad = selected.filter { p -> prepared.none { it.photo.uri == p.uri } }.map { it.uri }.toSet()
                 allPhotos = allPhotos.filterNot { it.uri in bad }
