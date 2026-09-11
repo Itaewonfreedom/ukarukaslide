@@ -34,7 +34,9 @@ class HingeMonitor(context: Context, private val update: (Float?) -> Unit) : Sen
     private val sources: List<Source> = run {
         val platform = if (Build.VERSION.SDK_INT >= 30) manager.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE) else null
         val vendor = manager.getSensorList(Sensor.TYPE_ALL).filter { s ->
-            s != platform && (s.name.contains("hinge", true) || s.stringType.contains("hinge", true))
+            s != platform && listOf("hinge", "folding_angle", "lid_angle", "folding angle").any {
+                s.name.contains(it, true) || s.stringType.contains(it, true)
+            }
         }
         listOfNotNull(platform?.let { Source(it, true) }) + vendor.map { Source(it, false) }
     }

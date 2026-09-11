@@ -21,11 +21,13 @@ class DualImuHinge(private val manager: SensorManager) : SensorEventListener {
     private val accelerometers: List<Sensor> = run {
         val default = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         val typed = manager.getSensorList(Sensor.TYPE_ACCELEROMETER).filter { it != default }
-        val named = manager.getSensorList(Sensor.TYPE_ALL).filter { s ->
-            s.type != Sensor.TYPE_ACCELEROMETER && s.name.contains("acc", true) &&
+        val all = manager.getSensorList(Sensor.TYPE_ALL)
+        val typedSub = all.filter { it.stringType.endsWith("accelerometer_sub") }
+        val named = all.filter { s ->
+            s.type != Sensor.TYPE_ACCELEROMETER && s.name.contains("acc", true) && !s.name.contains("uncal", true) &&
                 (s.name.contains("sub", true) || s.name.contains("second", true) || s.name.contains("cover", true))
         }
-        (listOfNotNull(default) + typed + named).distinct().take(2)
+        (listOfNotNull(default) + typedSub + typed + named).distinct().take(2)
     }
     val available: Boolean get() = accelerometers.size == 2
     private val main = FloatArray(3)
@@ -41,8 +43,12 @@ class DualImuHinge(private val manager: SensorManager) : SensorEventListener {
         private set
     fun start() {
         if (running || !available) return
-        running = accelerometers.map { manager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }.all { it }
-        if (!running) { manager.unregisterListener(this); status = "보조 가속도계 등록 실패" }
+        val ok = accelerometers.map { manager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
+        running = ok.all { it }
+        if (!running) {
+            manager.unregisterListener(this)
+            status = accelerometers.filterIndexed { i, _ -> !ok[i] }.joinToString(" / ") { "${it.name} 등록 거부" } + " · IMU 추정 불가"
+        }
     }
     fun stop() { manager.unregisterListener(this); running = false; estimate = null; mainAt = 0; subAt = 0 }
     /** Learn the second IMU's mounting rotation while the platform sensor says the device is flat. */

@@ -18,7 +18,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verify and build fold test 4
+      - name: Verify and build fold test 5
         run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease :app:assembleDebug --stacktrace
       - name: Collect installable debug APK, unsigned release APK and public signing tools
         run: |
@@ -30,8 +30,8 @@ jobs:
           cp app/build/reports/lint-results-release.html apk-package/
       - uses: actions/upload-artifact@v4
         with:
-          name: ukarukaslide-fold-test4
+          name: ukarukaslide-fold-test5
           path: apk-package/
           retention-days: 7
 
-# fold test 4: sensor dump and dual-IMU estimate
+# fold test 5: vendor sensor probe

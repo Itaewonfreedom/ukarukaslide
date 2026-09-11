@@ -41,13 +41,15 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     private val status = TextView(activity).apply {
         setTextColor(android.graphics.Color.WHITE); setBackgroundColor(0xAA000000.toInt())
         setPadding(16, 16, 16, 16); textSize = 11f
-        maxLines = 14; movementMethod = android.text.method.ScrollingMovementMethod()
+        maxLines = 20; movementMethod = android.text.method.ScrollingMovementMethod()
         setOnLongClickListener {
             val clipboard = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("hinge sensors", "$text\n\n${monitor.sensorDump()}"))
             android.widget.Toast.makeText(activity, "센서 목록을 복사했습니다", android.widget.Toast.LENGTH_SHORT).show(); true
         }
     }
+    private val probe = SensorProbe(activity.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager,
+        listOf("hinge_angle", "folding_angle", "folding_state", "folding_state_lpm", "accelerometer_sub", "gyroscope_sub", "hallIC"))
     private val imu = DualImuHinge(activity.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager)
     private val monitor = HingeMonitor(activity) { angle ->
         latestAngle = angle
@@ -66,12 +68,12 @@ class FoldController(private val activity: ComponentActivity, private val surfac
         lastStatusAt = now
         if (!dualTest) return
         if (monitor.rawAngle >= 179f) imu.calibrateFlat()
-        status.text = "${monitor.status} · 보간 ${latestAngle?.toInt() ?: "—"}° · $dualStatus\n${monitor.inventory}\n${imu.status}\n길게 누르면 전체 센서 목록 복사\n${monitor.sensorDump()}"
+        status.text = "${monitor.status} · 보간 ${latestAngle?.toInt() ?: "—"}° · $dualStatus\n${monitor.inventory}\n${imu.status}\n${probe.report}\n길게 누르면 전체 센서 목록 복사\n${monitor.sensorDump()}"
     }
     fun start() {
         if (!enabled || active) return
         active = true; monitor.start()
-        if (dualTest) imu.start()
+        if (dualTest) { imu.start(); probe.start() }
         surface.addOnLayoutChangeListener(resizeListener)
         val token = ++generation
         postureJob = activity.lifecycleScope.launch {
@@ -133,7 +135,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     fun stop() {
         generation++
         surface.removeOnLayoutChangeListener(resizeListener)
-        active = false; postureJob?.cancel(); areaJob?.cancel(); monitor.stop(); imu.stop()
+        active = false; postureJob?.cancel(); areaJob?.cancel(); monitor.stop(); imu.stop(); probe.stop()
         session?.close(); session = null; mirror = null
         surface.angle = null
     }
