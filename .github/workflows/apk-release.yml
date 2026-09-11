@@ -35,3 +35,5 @@ jobs:
           retention-days: 7
 
 # fold test 9: continuum pane, ambient light, focus blend, test mode B
+
+# retry 9a

@@ -53,7 +53,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     private val channelProbe = HingeChannelProbe(activity.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager)
     private val motion = MotionHingeProbe(activity.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager)
     private val imu = DualImuHinge(activity.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager)
-    private val monitor = HingeMonitor(activity) { angle ->
+    private val monitor: HingeMonitor = HingeMonitor(activity) { angle ->
         if (dualTest) { motion.anchor(monitor.rawAngle); monitor.hint(motion.hintDegrees) }
         latestAngle = angle
         surface.angle = if (horizontalFold) null else angle
