@@ -18,7 +18,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verify and build fold test 1
+      - name: Verify and build fold test 2
         run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --stacktrace
       - name: Collect unsigned APK and public signing tools
         run: |
