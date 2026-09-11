@@ -30,7 +30,7 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTask"
-            android:resizeableActivity="false"
+            android:resizeableActivity="true"
             android:screenOrientation="unspecified"
             android:taskAffinity="com.ukaruka.slide.preview"
             android:theme="@style/Theme.UkarukaSlide.Preview" />

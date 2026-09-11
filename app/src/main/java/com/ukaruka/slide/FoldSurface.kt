@@ -2,6 +2,7 @@ package com.ukaruka.slide
 
 import android.content.Context
 import android.graphics.*
+import android.os.Build
 import android.view.View
 import android.widget.FrameLayout
 
@@ -12,6 +13,8 @@ class FoldSurface(context: Context, private val mirrorSource: View? = null) : Fr
     var inner = true
     var hingeX: Float? = null
     private val transform = Matrix()
+    private var liquid: FoldLiquid? = null
+    private var liquidFailed = false
     private val mask = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN) }
     private val redraw = object : Runnable {
         override fun run() { invalidate(); if (isAttachedToWindow) postOnAnimation(this) }
@@ -21,21 +24,26 @@ class FoldSurface(context: Context, private val mirrorSource: View? = null) : Fr
         super.onAttachedToWindow()
         if (mirrorSource != null) postOnAnimation(redraw)
     }
-    override fun onDetachedFromWindow() { removeCallbacks(redraw); super.onDetachedFromWindow() }
+    override fun onDetachedFromWindow() {
+        removeCallbacks(redraw)
+        if (Build.VERSION.SDK_INT >= 33) liquid?.release()
+        liquid = null
+        super.onDetachedFromWindow()
+    }
     override fun dispatchDraw(canvas: Canvas) {
         val w = width.toFloat(); val h = height.toFloat()
         if (w <= 0 || h <= 0) return
-        fun scene() {
+        fun scene(target: Canvas = canvas) {
             val source = mirrorSource
-            if (source == null) super.dispatchDraw(canvas)
+            if (source == null) super.dispatchDraw(target)
             else if (source.width > 0 && source.height > 0) {
-                val save = canvas.save()
+                val save = target.save()
                 val scale = maxOf(w / source.width, h / source.height)
                 // The cover and left inner pane share a left-edge anchor.
-                canvas.translate(0f, (h - source.height * scale) / 2)
-                canvas.scale(scale, scale)
-                source.draw(canvas)
-                canvas.restoreToCount(save)
+                target.translate(0f, (h - source.height * scale) / 2)
+                target.scale(scale, scale)
+                source.draw(target)
+                target.restoreToCount(save)
             }
         }
         val a = angle
@@ -56,11 +64,17 @@ class FoldSurface(context: Context, private val mirrorSource: View? = null) : Fr
         transform.setPolyToPoly(src, 0, FoldGeometry.corners(edge, h, amount, !inner), 0, 4)
         val warp = canvas.save()
         canvas.concat(transform)
-        scene()
+        if (Build.VERSION.SDK_INT >= 33 && canvas.isHardwareAccelerated && !liquidFailed && amount > 0.001f) {
+            try {
+                val renderer = liquid ?: FoldLiquid().also { liquid = it }
+                renderer.draw(canvas, width, height, edge, amount, inner) { scene(it) }
+            } catch (_: RuntimeException) { liquidFailed = true; scene() }
+        } else scene()
         canvas.restoreToCount(warp)
         val alpha = if (inner) reveal else 1 - reveal
-        val near = (255 * alpha).toInt().coerceIn(0, 255)
-        val far = (255 * alpha * alpha).toInt().coerceIn(0, 255)
+        // Defocus happens first; most brightness remains until late in the dissolve.
+        val near = (255 * kotlin.math.sqrt(alpha)).toInt().coerceIn(0, 255)
+        val far = (255 * alpha).toInt().coerceIn(0, 255)
         mask.shader = LinearGradient(0f, 0f, edge, 0f,
             if (inner) intArrayOf(Color.argb(far,255,255,255), Color.argb(near,255,255,255))
             else intArrayOf(Color.argb(near,255,255,255), Color.argb(far,255,255,255)),

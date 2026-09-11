@@ -45,7 +45,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
         surface.inner = activity.resources.configuration.smallestScreenWidthDp >= 600
     }
     private fun updateStatus() {
-        if (dualTest) status.text = "${latestAngle?.let { "힌지 ${it.toInt()}°" } ?: "힌지 각도 대기/미지원"} · $dualStatus"
+        if (dualTest) status.text = "${monitor.status} · 보간 ${latestAngle?.toInt() ?: "—"}° · $dualStatus"
     }
     fun start() {
         if (!enabled || active) return

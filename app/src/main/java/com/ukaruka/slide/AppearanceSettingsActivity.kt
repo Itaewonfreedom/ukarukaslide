@@ -55,6 +55,15 @@ class AppearanceSettingsActivity : AppCompatActivity() {
             }, LinearLayout.LayoutParams(-2, dp(48)))
             addView(title("화면과 재생"))
             addView(sectionTitle("폴더블 · 실험 기능"), top(24))
+            addView(body("접으면 화면이 꺼지는 경우: 휴대폰 설정 → 디스플레이 → 커버 화면에서 앱 계속 사용에서 이 앱을 허용하거나 ‘항상’을 선택하세요. 시스템 화면 보호기는 별도로 종료될 수 있으니 미리보기로 먼저 테스트하세요."), top(6))
+            addView(MaterialButton(context).apply {
+                text = "휴대폰 디스플레이 설정 열기"
+                isAllCaps = false
+                setOnClickListener {
+                    runCatching { startActivity(android.content.Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)) }
+                        .onFailure { android.widget.Toast.makeText(context, "휴대폰 설정에서 디스플레이를 열어 주세요.", android.widget.Toast.LENGTH_LONG).show() }
+                }
+            }, top(10))
             addView(toggle("힌지 홀로그램 전환", playback.foldEffect) { playback.foldEffect = it })
             addView(body("접고 펼치는 각도에 따라 사진의 원근과 선명도가 바뀝니다. 센서를 지원하지 않으면 일반 재생합니다. 책처럼 좌우로 접는 화면용입니다."), top(6))
             addView(MaterialButton(context).apply {

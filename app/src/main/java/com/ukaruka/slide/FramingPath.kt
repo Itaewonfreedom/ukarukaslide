@@ -5,6 +5,11 @@ import kotlin.math.min
 
 data class FaceBounds(val left: Float, val top: Float, val right: Float, val bottom: Float)
 data class PhotoTransform(val scale: Float, val x: Float, val y: Float)
+fun PhotoTransform.covering(w: Float, h: Float, bw: Float, bh: Float): PhotoTransform {
+    val s = maxOf(scale, w / bw, h / bh)
+    return PhotoTransform(s, x.coerceIn(minOf(0f, w - bw * s), 0f),
+        y.coerceIn(minOf(0f, h - bh * s), 0f))
+}
 
 class FramingPath(
     w: Float, h: Float, bw: Float, bh: Float, protect: Boolean,

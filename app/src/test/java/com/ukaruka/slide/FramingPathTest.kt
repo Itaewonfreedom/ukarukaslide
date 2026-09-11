@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FramingPathTest {
+    @Test fun smallCoverAnchorCannotLeaveInnerScreenUnfilled() {
+        for ((w, h) in listOf(2200f to 1800f, 1100f to 1800f, 900f to 2400f)) {
+            for (x in listOf(-3000f, 0f, 1000f)) for (y in listOf(-3000f, 0f, 1000f)) {
+                val t = PhotoTransform(0.25f, x, y).covering(w, h, 800f, 1200f)
+                assertTrue(t.x <= 0f && t.y <= 0f)
+                assertTrue(t.x + 800 * t.scale >= w - 0.01f)
+                assertTrue(t.y + 1200 * t.scale >= h - 0.01f)
+            }
+        }
+    }
     @Test fun viewportStaysCoveredWithoutReversingForEveryFrameAndAspectRatio() {
         val sizes = listOf(1200f to 800f, 800f to 1200f, 600f to 800f, 300f to 1600f)
         val faces = listOf(null, FaceBounds(0f, 0f, 1f, 1f),

@@ -85,6 +85,9 @@ class FramedPhotoView(context: Context, private val prepared: PreparedPhoto,
             transform = PhotoTransform(from.scale + (transform.scale - from.scale) * reveal,
                 from.x + (transform.x - from.x) * reveal, y + (transform.y - y) * reveal)
         }
+        // An old cover-screen anchor must never leave the larger inner viewport uncovered.
+        transform = transform.covering(width.toFloat(), height.toFloat(),
+            prepared.bitmap.width.toFloat(), prepared.bitmap.height.toFloat())
         matrix.setScale(transform.scale, transform.scale)
         matrix.postTranslate(transform.x, transform.y)
         canvas.drawBitmap(prepared.bitmap, matrix, paint)
