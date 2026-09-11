@@ -62,6 +62,29 @@ class HingeSmootherTest {
         for (i in 1 until all.size) assertTrue("frame $i jumped ${all[i - 1]} -> ${all[i]}", all[i] - all[i - 1] in 0f..12f)
         assertEquals(180f, all.last(), 0.1f)
     }
+    @Test fun motionHintMovesThePostureSensorGoalWithoutCrossingTheNextPosture() {
+        val s = HingeSmoother()
+        s.sample(90f, 1_000_000_000)
+        s.sample(180f, 1_100_000_000)
+        repeat(120) { s.frame(1_100_000_000L + it * frame) }
+        assertEquals(180f, s.frame(1_100_000_000L + 121 * frame)!!, 0.1f)
+        s.hint = -40f // main half already turned toward closing before the sensor stepped
+        val t0 = 1_100_000_000L + 122 * frame
+        val moving = (1..90).map { s.frame(t0 + it * frame)!! }
+        assertTrue(moving.first() < 180f && moving.last() < 141f && moving.last() > 139f)
+        for (i in 1 until moving.size) assertTrue(moving[i] <= moving[i - 1] + 0.001f)
+        s.hint = -400f // a hint can never reach the next posture on its own
+        repeat(120) { s.frame(t0 + (90 + it) * frame) }
+        assertTrue(s.frame(t0 + 211 * frame)!! >= 91f)
+        s.hint = 0f
+        repeat(120) { s.frame(t0 + (212 + it) * frame) }
+        assertEquals(180f, s.frame(t0 + 333 * frame)!!, 0.1f)
+        val fine = HingeSmoother() // a real angle sensor ignores hints entirely
+        fine.sample(100f, 1_000_000_000); fine.sample(103f, 1_050_000_000)
+        fine.hint = 60f
+        repeat(60) { fine.frame(1_050_000_000L + it * frame) }
+        assertEquals(103f, fine.frame(1_050_000_000L + 61 * frame)!!, 0.1f)
+    }
     @Test fun fineSensorNeverEntersCoarseModeEvenAfterFastMotion() {
         val s = HingeSmoother()
         var time = 1_000_000_000L

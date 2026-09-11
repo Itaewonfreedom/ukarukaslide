@@ -80,10 +80,10 @@ class FramedPhotoView(context: Context, private val prepared: PreparedPhoto,
             val from = FramingPath(old.width.toFloat(), old.height.toFloat(),
                 prepared.bitmap.width.toFloat(), prepared.bitmap.height.toFloat(), protectFaces,
                 faces, dx, dy, zoomIn).at(progress)
-            // Keep the left edge and vertical center anchored while the viewport unfolds.
-            val y = from.y + (height - old.height) / 2f
-            transform = PhotoTransform(from.scale + (transform.scale - from.scale) * reveal,
-                from.x + (transform.x - from.x) * reveal, y + (transform.y - y) * reveal)
+            // The subject travels in a straight line from its cover framing to its inner framing.
+            val (fx, fy) = FramingPath.focus(if (protectFaces) faces else null)
+            transform = FramingPath.foldBlend(from, old.height.toFloat(), height.toFloat(), transform, reveal,
+                fx, fy, prepared.bitmap.width.toFloat(), prepared.bitmap.height.toFloat())
         }
         // An old cover-screen anchor must never leave the larger inner viewport uncovered.
         transform = transform.covering(width.toFloat(), height.toFloat(),

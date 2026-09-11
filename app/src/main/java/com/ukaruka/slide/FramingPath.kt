@@ -1,5 +1,7 @@
 package com.ukaruka.slide
 
+import kotlin.math.exp
+import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 
@@ -49,5 +51,30 @@ class FramingPath(
         val p = progress.coerceIn(0f, 1f)
         return PhotoTransform(start.scale + (end.scale - start.scale) * p,
             start.x + (end.x - start.x) * p, start.y + (end.y - start.y) * p)
+    }
+    companion object {
+        /** Where the eye should stay while the viewport changes shape: the faces, else just above centre. */
+        fun focus(faces: FaceBounds?): Pair<Float, Float> =
+            if (faces != null && faces.right > faces.left && faces.bottom > faces.top)
+                Pair((faces.left + faces.right) / 2f, (faces.top + faces.bottom) / 2f)
+            else Pair(0.5f, 0.45f)
+        /**
+         * Blend the framing of the old (cover) viewport into the new one as the hinge opens. The old
+         * viewport sits vertically centred in the new one. Scale eases in log space and the focus point
+         * travels in a straight line between where each framing puts it, so the subject never swirls.
+         */
+        fun foldBlend(from: PhotoTransform, fromHeight: Float, toHeight: Float, to: PhotoTransform,
+            reveal: Float, focusX: Float, focusY: Float, bw: Float, bh: Float): PhotoTransform {
+            val r = reveal.coerceIn(0f, 1f)
+            val fromY = from.y + (toHeight - fromHeight) / 2f
+            val scale = exp(ln(from.scale) * (1 - r) + ln(to.scale) * r)
+            val px0 = from.x + focusX * bw * from.scale
+            val py0 = fromY + focusY * bh * from.scale
+            val px1 = to.x + focusX * bw * to.scale
+            val py1 = to.y + focusY * bh * to.scale
+            return PhotoTransform(scale,
+                px0 + (px1 - px0) * r - focusX * bw * scale,
+                py0 + (py1 - py0) * r - focusY * bh * scale)
+        }
     }
 }
