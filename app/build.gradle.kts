@@ -11,8 +11,8 @@ android {
         applicationId = "com.ukaruka.slide"
         minSdk = 28
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.5.0-fold-test7"
+        versionCode = 18
+        versionName = "0.5.0-fold-test8"
     }
 
     buildTypes {
