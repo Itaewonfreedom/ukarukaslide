@@ -33,3 +33,5 @@ jobs:
           name: ukarukaslide-fold-test4
           path: apk-package/
           retention-days: 7
+
+# fold test 4: sensor dump and dual-IMU estimate

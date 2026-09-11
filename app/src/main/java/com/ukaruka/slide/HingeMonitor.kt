@@ -48,7 +48,7 @@ class HingeMonitor(context: Context, private val update: (Float?) -> Unit) : Sen
         private set
     /** Every sensor on the device, for finding a hidden angle or second IMU on the test screen. */
     fun sensorDump(): String = manager.getSensorList(Sensor.TYPE_ALL).joinToString("\n") { s ->
-        "${s.name} · type ${s.type} ${s.stringType} · res ${fmt(s.resolution)} · max ${fmt(s.maxRange)} · ${s.vendor}"
+        "${s.name} · type ${s.type} ${s.stringType} · res ${fmt(s.resolution)} · max ${fmt(s.maximumRange)} · ${s.vendor}"
     }
     /** Last raw reading of the driving sensor, for calibrating the IMU estimate. */
     var rawAngle = Float.NaN
