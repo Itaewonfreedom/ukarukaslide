@@ -2,7 +2,7 @@ name: Requested APK build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/fold-hologram ]
     paths: [ .github/workflows/apk-release.yml ]
   workflow_dispatch:
 
@@ -18,7 +18,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verify and build release 0.4.1
+      - name: Verify and build fold test 1
         run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --stacktrace
       - name: Collect unsigned APK and public signing tools
         run: |
