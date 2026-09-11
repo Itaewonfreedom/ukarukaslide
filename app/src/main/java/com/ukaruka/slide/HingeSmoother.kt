@@ -30,11 +30,6 @@ class HingeSmoother {
     val levels: Int get() = seen.size
     /** True when the sensor is only stepping between postures instead of tracking the angle. */
     val coarse: Boolean get() = step.isFinite() && step >= COARSE_STEP
-    /**
-     * Degrees the hinge is believed to have moved since the last posture reading, from an external
-     * motion estimate. Only a posture-stepping sensor uses it; it never crosses into the next posture.
-     */
-    var hint = 0f
     fun sample(angle: Float, time: Long) {
         if (!angle.isFinite() || angle !in 0f..180f || time <= sampleTime) return
         val old = target
@@ -58,14 +53,13 @@ class HingeSmoother {
         val dt = ((time - frameTime) / 1_000_000_000f).coerceIn(0f, 1f / 30f)
         frameTime = time
         if (coarse) {
-            val goal = (raw + hint.coerceIn(-89f, 89f)).coerceIn(0f, 180f)
-            val x = shown - goal
+            val x = shown - raw
             val v = springVelocity
             val decay = exp(-SPRING_OMEGA * dt)
             val slope = v + SPRING_OMEGA * x
-            shown = goal + (x + slope * dt) * decay
+            shown = raw + (x + slope * dt) * decay
             springVelocity = (v - SPRING_OMEGA * slope * dt) * decay
-            if (abs(shown - goal) < 0.02f && abs(springVelocity) < 1f) { shown = goal; springVelocity = 0f }
+            if (abs(shown - raw) < 0.02f && abs(springVelocity) < 1f) { shown = raw; springVelocity = 0f }
             return shown.coerceIn(0f, 180f)
         }
         springVelocity = 0f
@@ -81,7 +75,7 @@ class HingeSmoother {
     }
     fun reset() {
         target = null; sampleTime = 0; frameTime = 0; velocity = 0f; acceleration = 0f
-        springVelocity = 0f; intervalMs = 0; step = Float.NaN; seen.clear(); hint = 0f
+        springVelocity = 0f; intervalMs = 0; step = Float.NaN; seen.clear()
     }
     companion object {
         /** Readings that never move by less than this are posture steps, not angles. */

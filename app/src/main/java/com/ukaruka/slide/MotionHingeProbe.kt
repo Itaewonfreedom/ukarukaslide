@@ -29,13 +29,6 @@ class MotionHingeProbe(private val manager: SensorManager) : SensorEventListener
     private var fieldMax = Float.NaN
     private val transitions = ArrayDeque<String>()
     private var running = false
-    /** Learned at posture steps: sign of hinge-axis rotation that means opening, and degrees of hinge per degree of main-half turn. */
-    var direction = 1f
-        private set
-    var gain = 2f
-        private set
-    /** Test mode B: estimated hinge movement since the last posture step, opening positive. */
-    val hintDegrees: Float get() = (turned[1] * direction * gain).coerceIn(-90f, 90f)
     fun start() {
         if (running) return
         running = true
@@ -47,11 +40,6 @@ class MotionHingeProbe(private val manager: SensorManager) : SensorEventListener
     fun anchor(platformAngle: Float) {
         if (platformAngle.isNaN() || platformAngle == anchor) return
         if (!anchor.isNaN()) {
-            val moved = platformAngle - anchor
-            if (abs(turned[1]) > 12f && moved != 0f) {
-                direction = if (turned[1] * moved > 0f) 1f else -1f
-                gain = gain * 0.6f + (abs(moved) / abs(turned[1])).coerceIn(1f, 4f) * 0.4f
-            }
             transitions.addFirst("${anchor.toInt()}→${platformAngle.toInt()}: X ${fmt(turned[0])} Y ${fmt(turned[1])} Z ${fmt(turned[2])} · 자기장 ${fmt(fieldMagnitude)}µT")
             while (transitions.size > 4) transitions.removeLast()
         }
@@ -86,7 +74,7 @@ class MotionHingeProbe(private val manager: SensorManager) : SensorEventListener
         val a = if (anchor.isNaN()) "앵커 없음" else "앵커 ${anchor.toInt()}°"
         val raw = magnet?.type == Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED
         val b = if (fieldMagnitude.isNaN()) "" else " · 자기장${if (raw) "(비보정)" else ""} ${fmt(fieldMagnitude)}µT [${fmt(fieldMin)}–${fmt(fieldMax)}]"
-        val now = "자이로 적분 $a · X ${fmt(turned[0])} Y ${fmt(turned[1])} Z ${fmt(turned[2])}$b · B 힌트 ${fmt(hintDegrees)}° (이득 ${"%.1f".format(gain)}, 방향 ${if (direction > 0) "+" else "-"})"
+        val now = "자이로 적분 $a · X ${fmt(turned[0])} Y ${fmt(turned[1])} Z ${fmt(turned[2])}$b"
         return if (transitions.isEmpty()) now else now + "\n단계 전환 기록: " + transitions.joinToString(" | ")
     }
     private fun fmt(v: Float) = if (v.isNaN()) "—" else "%.0f".format(v)

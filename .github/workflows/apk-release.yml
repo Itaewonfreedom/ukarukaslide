@@ -18,7 +18,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verify and build fold test 9
+      - name: Verify and build fold test 10
         run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease :app:assembleDebug --stacktrace
       - name: Collect installable debug APK, unsigned release APK and public signing tools
         run: |
@@ -30,10 +30,9 @@ jobs:
           cp app/build/reports/lint-results-release.html apk-package/
       - uses: actions/upload-artifact@v4
         with:
-          name: ukarukaslide-fold-test9
+          name: ukarukaslide-fold-test10
           path: apk-package/
           retention-days: 7
 
-# fold test 9: continuum pane, ambient light, focus blend, test mode B
+# fold test 10: test mode B removed
 
-# retry 9a

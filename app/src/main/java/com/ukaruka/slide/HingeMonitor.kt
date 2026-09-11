@@ -57,8 +57,6 @@ class HingeMonitor(context: Context, private val update: (Float?) -> Unit) : Sen
         private set
     /** True once the driving sensor has proven to step between postures only. */
     val coarse: Boolean get() = smoother.coarse
-    /** Motion estimate in degrees since the last posture reading (test mode B); zero disables it. */
-    fun hint(degrees: Float) { smoother.hint = if (degrees.isFinite()) degrees else 0f }
     private var running = false
     private val smoother = HingeSmoother()
     private val choreographer = Choreographer.getInstance()

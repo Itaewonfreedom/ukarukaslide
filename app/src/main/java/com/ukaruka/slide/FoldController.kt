@@ -54,7 +54,6 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     private val motion = MotionHingeProbe(activity.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager)
     private val imu = DualImuHinge(activity.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager)
     private val monitor: HingeMonitor = HingeMonitor(activity) { angle ->
-        if (dualTest) { motion.anchor(monitor.rawAngle); monitor.hint(motion.hintDegrees) }
         latestAngle = angle
         surface.angle = if (horizontalFold) null else angle
         scene.setFoldReveal(if (angle == null || horizontalFold) null else if (surface.inner) FoldGeometry.reveal(angle) else 1f)
@@ -71,6 +70,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
         lastStatusAt = now
         if (!dualTest) return
         if (monitor.rawAngle >= 179f) imu.calibrateFlat()
+        motion.anchor(monitor.rawAngle)
         channelProbe.poll()
         status.text = "${monitor.status} · 보간 ${latestAngle?.toInt() ?: "—"}° · $dualStatus\n${monitor.inventory}\n${channelProbe.metadata}\n${channelProbe.report}\n${imu.status}\n${motion.report}\n${probe.report}\n길게 누르면 전체 센서 목록 복사\n${monitor.sensorDump()}"
     }
