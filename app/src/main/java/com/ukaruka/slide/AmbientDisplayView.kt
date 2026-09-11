@@ -78,6 +78,7 @@ class AmbientDisplayView(context: Context) : FrameLayout(context) {
     }
 
     fun snapshot() = player.snapshot()
+    fun setFoldReveal(value: Float?) { player.setFoldReveal(value) }
     fun restore(state: SlideshowPlayerView.Snapshot) { player.restore(state) }
     fun suspendPlayback() {
         burnInHandler.removeCallbacks(burnInShift)

@@ -24,12 +24,13 @@ class SlideshowDreamService : DreamService() {
         loaded = false
         val surface = FoldSurface(this).apply {
             inner = resources.configuration.smallestScreenWidthDp >= 600
-            addView(display, android.widget.FrameLayout.LayoutParams(-1, -1))
+            addView(this@SlideshowDreamService.display, android.widget.FrameLayout.LayoutParams(-1, -1))
         }
         setContentView(surface)
         if (PlaybackPreferences(this).foldEffect) hinge = HingeMonitor(this) {
             surface.inner = resources.configuration.smallestScreenWidthDp >= 600
             surface.angle = it
+            display.setFoldReveal(it?.let { angle -> if (surface.inner) FoldGeometry.reveal(angle) else 1f })
         }
         window?.let { nightMode = NightModeController(this, it, display) }
     }

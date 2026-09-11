@@ -23,7 +23,7 @@ class PreviewActivity : ComponentActivity() {
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             )
         display = AmbientDisplayView(this)
-        val surface = FoldSurface(this).apply { addView(display, android.widget.FrameLayout.LayoutParams(-1, -1)) }
+        val surface = FoldSurface(this).apply { addView(this@PreviewActivity.display, android.widget.FrameLayout.LayoutParams(-1, -1)) }
         setContentView(surface)
         fold = FoldController(this, surface, display, intent.getBooleanExtra("dual_screen_test", false))
         nightMode = NightModeController(this, window, display)

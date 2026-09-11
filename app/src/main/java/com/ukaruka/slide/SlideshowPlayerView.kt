@@ -48,7 +48,13 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     private var lastFrame = 0L
     private var nextAt = Long.MAX_VALUE
     private val paused get() = userPaused || nightPaused || lifecyclePaused
-    data class LayerState(val photos: List<PreparedPhoto>, val born: Long, val alpha: Float)
+    data class LayerState(val photos: List<PreparedPhoto>, val born: Long, val alpha: Float,
+        val viewports: List<PhotoViewport?>)
+    private var foldReveal: Float? = null
+    fun setFoldReveal(value: Float?) {
+        foldReveal = value
+        listOfNotNull(active, outgoing).forEach { layer -> layer.images.forEach { it.foldReveal(value) } }
+    }
     data class Snapshot(val all: List<SlidePhoto>, val queue: List<SlidePhoto>,
         val history: List<List<SlidePhoto>>, val index: Int, val interval: Long,
         val order: PhotoSourceStore.PlaybackOrder, val elapsed: Long, val nextAt: Long,
@@ -57,8 +63,8 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
     private var inFlightFresh = false
     fun snapshot(): Snapshot = Snapshot(allPhotos, (if (inFlightFresh) inFlight else emptyList()) + queue.toList(),
         history.toList(), historyIndex, interval, order, elapsed, nextAt, userPaused,
-        active?.let { LayerState(it.photos, it.born, it.alpha) },
-        outgoing?.let { LayerState(it.photos, it.born, it.alpha) })
+        active?.let { LayerState(it.photos, it.born, it.alpha, it.images.map { view -> view.viewportState() }) },
+        outgoing?.let { LayerState(it.photos, it.born, it.alpha, it.images.map { view -> view.viewportState() }) })
     fun restore(s: Snapshot) {
         stop()
         allPhotos = s.all; queue.clear(); queue.addAll(s.queue)
@@ -68,7 +74,7 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
         current = s.active?.photos?.map { it.photo } ?: emptyList()
         listOfNotNull(active, outgoing).forEach(::removeView)
         fun layer(state: LayerState?): Layer? = state?.let {
-            Layer(it.photos, it.born).apply { alpha = it.alpha; this@SlideshowPlayerView.addView(this, 0, LayoutParams(-1, -1)) }
+            Layer(it.photos, it.born, it.viewports).apply { alpha = it.alpha; this@SlideshowPlayerView.addView(this, 0, LayoutParams(-1, -1)) }
         }
         outgoing = layer(s.outgoing); active = layer(s.active)
         active?.bringToFront(); empty.bringToFront(); controls.bringToFront()
@@ -92,12 +98,14 @@ class SlideshowPlayerView(context: Context) : FrameLayout(context) {
         visibility = View.GONE
     }
     private val hideControls = Runnable { controls.visibility = View.GONE }
-    private inner class Layer(val photos: List<PreparedPhoto>, val born: Long = elapsed) : LinearLayout(context) {
-        val images = photos.map { FramedPhotoView(context, it, preferences.faceFraming) }
+    private inner class Layer(val photos: List<PreparedPhoto>, val born: Long = elapsed,
+        viewports: List<PhotoViewport?> = emptyList()) : LinearLayout(context) {
+        val images = photos.mapIndexed { i, photo -> FramedPhotoView(context, photo, preferences.faceFraming, viewports.getOrNull(i)) }
         init {
             orientation = HORIZONTAL
             setBackgroundColor(Color.BLACK)
             images.forEach { view ->
+                view.foldReveal(foldReveal)
                 val age = (elapsed - born).coerceAtLeast(0).toDouble()
                 view.progress((age / (age + interval + FADE_MS)).toFloat())
                 addView(view, LinearLayout.LayoutParams(0, -1, 1f))

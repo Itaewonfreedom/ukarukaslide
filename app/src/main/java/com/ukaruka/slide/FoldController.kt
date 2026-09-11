@@ -20,6 +20,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     private val scene: AmbientDisplayView, private val dualTest: Boolean) {
     private val enabled = PlaybackPreferences(activity).foldEffect || dualTest
     private var active = false
+    private var generation = 0
     private var postureJob: Job? = null
     private var areaJob: Job? = null
     private var session: WindowAreaSessionPresenter? = null
@@ -35,6 +36,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     private val monitor = HingeMonitor(activity) { angle ->
         latestAngle = angle
         surface.angle = if (horizontalFold) null else angle
+        scene.setFoldReveal(if (angle == null || horizontalFold) null else if (surface.inner) FoldGeometry.reveal(angle) else 1f)
         mirror?.angle = if (horizontalFold) null else angle
         updateStatus()
     }
@@ -48,6 +50,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     fun start() {
         if (!enabled || active) return
         active = true; monitor.start()
+        val token = ++generation
         postureJob = activity.lifecycleScope.launch {
             try {
                 WindowInfoTracker.getOrCreate(activity).windowLayoutInfo(activity).collect { layout ->
@@ -56,6 +59,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
                     horizontalFold = feature?.orientation == FoldingFeature.Orientation.HORIZONTAL
                     surface.hingeX = feature?.takeIf { !horizontalFold }?.bounds?.centerX()?.toFloat()
                     surface.angle = if (horizontalFold) null else latestAngle
+                    scene.setFoldReveal(if (horizontalFold) null else latestAngle?.let { if (surface.inner) FoldGeometry.reveal(it) else 1f })
                     surface.invalidate()
                 }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
@@ -81,17 +85,19 @@ class FoldController(private val activity: ComponentActivity, private val surfac
                         controller.presentContentOnWindowArea(area.token, activity, activity.mainExecutor,
                             object : WindowAreaPresentationSessionCallback {
                                 override fun onSessionStarted(s: WindowAreaSessionPresenter) {
-                                    if (!active) { s.close(); return }
+                                    if (!active || token != generation) { s.close(); return }
                                     session = s
                                     mirror = FoldSurface(s.context, scene).apply { inner = false; angle = latestAngle }
                                     s.setContentView(mirror!!)
                                 }
                                 override fun onSessionEnded(t: Throwable?) {
+                                    if (token != generation) return
                                     session = null; mirror = null
                                     dualStatus = if (t == null) "양쪽 화면 세션 종료" else "양쪽 화면 시작 실패 · 일반 재생"
                                     updateStatus()
                                 }
                                 override fun onContainerVisibilityChanged(isVisible: Boolean) {
+                                    if (token != generation) return
                                     mirror?.visibility = if (isVisible) android.view.View.VISIBLE else android.view.View.INVISIBLE
                                 }
                             })
@@ -102,6 +108,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
         }
     }
     fun stop() {
+        generation++
         active = false; postureJob?.cancel(); areaJob?.cancel(); monitor.stop()
         session?.close(); session = null; mirror = null
         surface.angle = null
