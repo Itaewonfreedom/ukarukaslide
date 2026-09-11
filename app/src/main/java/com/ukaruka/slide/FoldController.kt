@@ -57,7 +57,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
         val now = android.os.SystemClock.uptimeMillis()
         if (now - lastStatusAt < 200) return
         lastStatusAt = now
-        if (dualTest) status.text = "${monitor.status} · 보간 ${latestAngle?.toInt() ?: "—"}° · $dualStatus"
+        if (dualTest) status.text = "${monitor.status} · 보간 ${latestAngle?.toInt() ?: "—"}° · $dualStatus\n${monitor.inventory}"
     }
     fun start() {
         if (!enabled || active) return

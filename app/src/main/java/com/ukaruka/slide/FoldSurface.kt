@@ -73,8 +73,8 @@ class FoldSurface(context: Context, private val mirrorSource: View? = null) : Fr
         canvas.restoreToCount(warp)
         val alpha = if (inner) reveal else 1 - reveal
         // Defocus happens first; most brightness remains until late in the dissolve.
-        val near = (255 * kotlin.math.sqrt(alpha)).toInt().coerceIn(0, 255)
-        val far = (255 * alpha).toInt().coerceIn(0, 255)
+        val near = Math.round(255 * FoldGeometry.nearAlpha(alpha)).coerceIn(0, 255)
+        val far = Math.round(255 * FoldGeometry.farAlpha(alpha)).coerceIn(0, 255)
         mask.shader = LinearGradient(0f, 0f, edge, 0f,
             if (inner) intArrayOf(Color.argb(far,255,255,255), Color.argb(near,255,255,255))
             else intArrayOf(Color.argb(near,255,255,255), Color.argb(far,255,255,255)),
