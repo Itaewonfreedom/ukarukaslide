@@ -35,7 +35,8 @@ class HingeSmoother {
         val confidence = (1f - age / 0.12f).coerceIn(0f, 1f)
         val lead = ((velocity * horizon + 0.5f * acceleration * horizon * horizon) * confidence).coerceIn(-4f, 4f)
         val predicted = (raw + if (raw <= 1f || raw >= 179f) 0f else lead).coerceIn(0f, 180f)
-        val dt = ((time - frameTime) / 1_000_000_000f).coerceIn(0f, 0.1f)
+        // A display handoff can stall frames; do not turn that gap into a one-frame jump.
+        val dt = ((time - frameTime) / 1_000_000_000f).coerceIn(0f, 1f / 30f)
         frameTime = time
         shown += (predicted - shown) * (1f - exp(-dt / 0.045f))
         if (age > 0.12f && abs(shown - raw) < 0.02f) shown = raw
