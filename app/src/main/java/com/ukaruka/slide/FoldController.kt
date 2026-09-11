@@ -29,6 +29,15 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     private var horizontalFold = false
     private var latestAngle: Float? = null
     private var dualStatus = "양쪽 화면 지원 확인 중"
+    private var lastStatusAt = 0L
+    private val resizeListener = android.view.View.OnLayoutChangeListener { _, l, _, r, _, oldL, _, oldR, _ ->
+        if (r - l != oldR - oldL) {
+            surface.inner = (r - l) / activity.resources.displayMetrics.density >= 600f
+            surface.hingeX = null // old display coordinates are invalid after a handoff
+            surface.angle = if (horizontalFold) null else latestAngle
+            scene.setFoldReveal(if (horizontalFold) null else latestAngle?.let { if (surface.inner) FoldGeometry.reveal(it) else 1f })
+        }
+    }
     private val status = TextView(activity).apply {
         setTextColor(android.graphics.Color.WHITE); setBackgroundColor(0xAA000000.toInt())
         setPadding(16, 16, 16, 16); textSize = 12f
@@ -45,11 +54,15 @@ class FoldController(private val activity: ComponentActivity, private val surfac
         surface.inner = activity.resources.configuration.smallestScreenWidthDp >= 600
     }
     private fun updateStatus() {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastStatusAt < 200) return
+        lastStatusAt = now
         if (dualTest) status.text = "${monitor.status} · 보간 ${latestAngle?.toInt() ?: "—"}° · $dualStatus"
     }
     fun start() {
         if (!enabled || active) return
         active = true; monitor.start()
+        surface.addOnLayoutChangeListener(resizeListener)
         val token = ++generation
         postureJob = activity.lifecycleScope.launch {
             try {
@@ -109,6 +122,7 @@ class FoldController(private val activity: ComponentActivity, private val surfac
     }
     fun stop() {
         generation++
+        surface.removeOnLayoutChangeListener(resizeListener)
         active = false; postureJob?.cancel(); areaJob?.cancel(); monitor.stop()
         session?.close(); session = null; mirror = null
         surface.angle = null
